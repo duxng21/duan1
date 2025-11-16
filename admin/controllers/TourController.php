@@ -75,4 +75,10 @@ class TourController {
     public function ListBooking() {
         require_once './views/quanlytour/list_booking.php';
     }
+    public function AddList(){
+        require_once './views/quanlytour/add_list.php';
+    }
+    public function EditList(){
+        require_once './views/quanlytour/edit_list.php';
+    }
 }
