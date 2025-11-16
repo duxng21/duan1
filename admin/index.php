@@ -1,4 +1,4 @@
-<?php 
+<?php
 // Require toàn bộ các file khai báo môi trường, thực thi,...(không require view)
 
 // Require file Common
@@ -11,6 +11,7 @@ require_once './controllers/AuthController.php';
 
 // Require toàn bộ file Models
 require_once './models/Tour.php';
+require_once './models/Category.php';
 // require_once './models/ProductModel.php';
 
 // Route
@@ -21,16 +22,19 @@ $act = $_GET['act'] ?? '/';
 
 match ($act) {
     // Trang chủ
-    '/'               =>(new TourController())->Home(),
-    'list-tour'       =>(new TourController())->ListTour(),
-    'menu-tour'       =>(new TourController())->MenuTour(),
-    'them-danh-muc'   =>(new TourController())->AddMenu(),
-    'them-booking'    =>(new TourController())->AddBooking(),
-    'list-booking'    =>(new TourController())->ListBooking(),
-    'add-list'        =>(new TourController())->AddList(),
-    'edit-list'       =>(new TourController())->EditList(),
+    '/' => (new TourController())->Home(),
+    'list-tour' => (new TourController())->ListTour(),
+    'menu-tour' => (new TourController())->MenuTour(),
+    'them-danh-muc' => (new TourController())->AddMenu(),
+    'them-booking' => (new TourController())->AddBooking(),
+    'list-booking' => (new TourController())->ListBooking(),
+    'add-list' => (new TourController())->AddList(),
+    'luu-tour' => (new TourController())->store(),
+    'edit-list' => (new TourController())->EditList(),
+    'cap-nhat-tour' => (new TourController())->update(),
+    'xoa-tour' => (new TourController())->delete(),
 
 
     //auth
-    'login'                 =>(new AuthController())->login(),
+    'login' => (new AuthController())->login(),
 };
