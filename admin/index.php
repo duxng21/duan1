@@ -10,6 +10,7 @@ require_once './controllers/TourController.php';
 require_once './controllers/AuthController.php';
 
 // Require toàn bộ file Models
+require_once './models/Tour.php';
 // require_once './models/ProductModel.php';
 
 // Route
