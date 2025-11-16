@@ -1,9 +1,15 @@
 <?php
     class TourController{
+    public $modelTour;
+    public function __construct()
+    {
+        $this->modelTour = new Tour();
+    }
         public function home(){
         require_once './views/home.php';
         }
         public function ListTour(){
+        $tours = $this->modelTour->getAll();
         require_once './views/quanlytour/list_tour.php';
         }
         public function MenuTour(){

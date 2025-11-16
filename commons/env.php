@@ -3,7 +3,7 @@
 // Biến môi trường, dùng chung toàn hệ thống
 // Khai báo dưới dạng HẰNG SỐ để không phải dùng $GLOBALS
 
-define('BASE_URL'       , 'http://localhost:82/duan1/duan1/');
+define('BASE_URL'       , 'http://localhost:82/duan1/admin/'); // Đường dẫn gốc của hệ thống
 
 define('DB_HOST'    , 'localhost');
 define('DB_PORT'    , 3306);
