@@ -14,7 +14,7 @@
                         <div class="card">
                             <div class="card-header">
                                 <h4 class="card-title">Danh sách Tour</h4>
-                                <a href="add_menu_tour.php"><button type="button"
+                                <a href="?act=add-list"><button type="button"
                                         class="btn btn-primary mr-1 mb-1 waves-effect waves-light">Thêm danh
                                         sách</button></a>
                             </div>
@@ -47,7 +47,7 @@
                                                 <td><?= $row['start_location'] ?></td>
                                                 <td><?= $row['status'] ?></td>
                                                 <td>
-                                                    <a href="index.php?controller=tour&action=edit&id=<?= $row['tour_id'] ?>" class="btn btn-warning btn-sm">Sửa</a>
+                                                    <a href="?act=edit-list&id=<?= $row['tour_id'] ?>" class="btn btn-warning btn-sm">Sửa</a>
                                                 
                                                     <a onclick="return confirm('Xóa tour này?')"
                                                         href="index.php?controller=tour&action=delete&id=<?= $row['tour_id'] ?>" class="btn btn-danger btn-sm">Xóa</a>

@@ -25,8 +25,10 @@ match ($act) {
     'list-tour'       =>(new TourController())->ListTour(),
     'menu-tour'       =>(new TourController())->MenuTour(),
     'them-danh-muc'   =>(new TourController())->AddMenu(),
-    'them-booking'     =>(new TourController())->AddBooking(),
+    'them-booking'    =>(new TourController())->AddBooking(),
     'list-booking'    =>(new TourController())->ListBooking(),
+    'add-list'        =>(new TourController())->AddList(),
+    'edit-list'       =>(new TourController())->EditList(),
 
 
     //auth
