@@ -1,5 +1,6 @@
-<?php 
-class Tour{
+<?php
+class Tour
+{
     public $conn;
     public function __construct()
     {
@@ -8,8 +9,17 @@ class Tour{
 
     public function getAll()
     {
-        $sql="SELECT*FROM tours";
-        $stmt=$this->conn->prepare($sql);
+        $sql = "SELECT 
+                    t.*,
+                    tc.category_name,
+                    tm.file_path as tour_image,
+                    tp.price_adult as tour_price
+                FROM tours t
+                LEFT JOIN tour_categories tc ON t.category_id = tc.category_id
+                LEFT JOIN tour_media tm ON t.tour_id = tm.tour_id AND tm.is_featured = 1
+                LEFT JOIN tour_prices tp ON t.tour_id = tp.tour_id
+                ORDER BY t.tour_id DESC";
+        $stmt = $this->conn->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll();
     }

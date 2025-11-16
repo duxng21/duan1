@@ -6,6 +6,7 @@ class TourController {
     public function __construct()
     {
         $this->modelTour = new Tour();
+        $this->modelCategory = new Category();
     }
 
     public function home() {
