@@ -34,13 +34,9 @@ $(document).ready(function() {
     pageLength: 4,
     buttons: [
       {
-        text: "<i class='feather icon-plus'></i> Add New",
+        text: "<i class='feather icon-plus'></i> Thêm mới",
         action: function() {
-          $(this).removeClass("btn-secondary")
-          $(".add-new-data").addClass("show")
-          $(".overlay-bg").addClass("show")
-          $("#data-name, #data-price").val("")
-          $("#data-category, #data-status").prop("selectedIndex", 0)
+          window.location.href = "?act=add-list"
         },
         className: "btn-outline-primary"
       }
