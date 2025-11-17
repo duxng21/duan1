@@ -8,6 +8,9 @@
         <div class="content-header row">
         </div>
         <div class="content-body">
+            <!-- Thông báo -->
+            <?php require_once __DIR__ . '/../layouts/alert.php'; ?>
+
             <section id="basic-datatable">
                 <div class="row">
                     <div class="col-12">
@@ -54,46 +57,7 @@
                                                 </td>
                                                 </tr>
                                                 <?php endforeach; ?>
-                                                <!-- <tr>
-                                                        <td>1</td>
-                                                        <td>Trong nước</td>
-                                                        <td><img class="img-fluid mx-auto d-block object-fit-cover" src="https://dreamtravel.com.vn/Data/ResizeImage/uploads/images/thanh%20-%20mar%20outbound/inbound/83x298x220x2.jpg" alt=""></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td><button type="button" class="btn btn-sm bg-gradient-warning mr-1 mb-1 waves-effect waves-light">Sửa</button>  <button type="button" class="btn btn-sm bg-gradient-danger mr-1 mb-1 waves-effect waves-light">Xoá</button></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>2</td>
-                                                        <td>Quốc tế</td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td><button type="button" class="btn btn-sm bg-gradient-warning mr-1 mb-1 waves-effect waves-light">Sửa</button>  <button type="button" class="btn btn-sm bg-gradient-danger mr-1 mb-1 waves-effect waves-light">Xoá</button></td> -->
-                                                <!-- </tr>
-                                                    <tr>
-                                                        <td>3</td>
-                                                        <td>Đà Lạt</td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td><button type="button" class="btn btn-sm bg-gradient-warning mr-1 mb-1 waves-effect waves-light">Sửa</button>  <button type="button" class="btn btn-sm bg-gradient-danger mr-1 mb-1 waves-effect waves-light">Xoá</button></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>4s</td>
-                                                        <td>Trong nước</td>
-                                                        <td><img class="img-fluid mx-auto d-block object-fit-cover" src="https://dreamtravel.com.vn/Data/ResizeImage/uploads/images/thanh%20-%20mar%20outbound/inbound/83x298x220x2.jpg" alt=""></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td><button type="button" class="btn btn-sm bg-gradient-warning mr-1 mb-1 waves-effect waves-light">Sửa</button>  <button type="button" class="btn btn-sm bg-gradient-danger mr-1 mb-1 waves-effect waves-light">Xoá</button></td>
-                                                    </tr> -->
+
                                             </tbody>
                                             <tfoot>
                                             </tfoot>

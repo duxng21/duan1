@@ -23,13 +23,15 @@
                                                 <div class="col-12">
                                                     <div class="form-group">
                                                         <label for="first-name-vertical">Tên Tour</label>
-                                                        <input type="text" id="name" class="form-control" name="name" placeholder="Tên Tour">
+                                                        <input type="text" id="name" class="form-control" name="name"
+                                                            placeholder="Tên Tour">
                                                     </div>
                                                 </div>
                                                 <div class="col-12">
                                                     <div class="form-group">
                                                         <label for="email-id-vertical">Mã</label>
-                                                        <input type="text" id="code" class="form-control" name="code" placeholder="Mã">
+                                                        <input type="text" id="code" class="form-control" name="code"
+                                                            placeholder="Mã">
                                                     </div>
                                                 </div>
                                                 <div class="col-12">
@@ -46,13 +48,15 @@
                                                 <div class="col-12">
                                                     <div class="form-group">
                                                         <label for="email-id-vertical">Số ngày</label>
-                                                        <input type="number" id="day" class="form-control" name="day" placeholder="Số ngày">
+                                                        <input type="number" id="day" class="form-control" name="day"
+                                                            placeholder="Số ngày">
                                                     </div>
                                                 </div>
                                                 <div class="col-12">
                                                     <div class="form-group">
                                                         <label for="email-id-vertical">Điểm xuất phát</label>
-                                                        <input type="number" id="start" class="form-control" name="start" placeholder="Diểm xuất phát">
+                                                        <input type="number" id="start" class="form-control"
+                                                            name="start" placeholder="Diểm xuất phát">
                                                     </div>
                                                 </div>
                                                 <div class="col-12">
@@ -67,8 +71,11 @@
                                                     </div>
                                                 </div>
                                                 <div class="col-12">
-                                                    <button type="submit" class="btn btn-primary mr-1 mb-1 waves-effect waves-light">Thêm</button>
-                                                    <button type="reset" class="btn btn-outline-warning mr-1 mb-1 waves-effect waves-light">Đặt lại</button>
+                                                    <button type="submit"
+                                                        class="btn btn-primary mr-1 mb-1 waves-effect waves-light">Thêm</button>
+                                                    <button type="reset"
+                                                        class="btn btn-outline-warning mr-1 mb-1 waves-effect waves-light">Đặt
+                                                        lại</button>
                                                 </div>
                                             </div>
                                         </div>
