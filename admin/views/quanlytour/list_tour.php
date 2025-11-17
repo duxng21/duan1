@@ -91,11 +91,19 @@
                                                                 class="badge <?= $statusClass ?>"><?= $row['status'] ?? 'Draft' ?></span>
                                                         </td>
                                                         <td>
+                                                            <a href="?act=chi-tiet-tour&id=<?= $row['tour_id'] ?>"
+                                                                class="btn btn-info btn-sm" title="Chi tiết tour">
+                                                                <i class="feather icon-eye"></i>
+                                                            </a>
                                                             <a href="?act=edit-list&id=<?= $row['tour_id'] ?>"
-                                                                class="btn btn-warning btn-sm">Sửa</a>
+                                                                class="btn btn-warning btn-sm" title="Sửa">
+                                                                <i class="feather icon-edit"></i>
+                                                            </a>
                                                             <a onclick="return confirm('Xóa tour này?')"
                                                                 href="?act=xoa-tour&id=<?= $row['tour_id'] ?>"
-                                                                class="btn btn-danger btn-sm">Xóa</a>
+                                                                class="btn btn-danger btn-sm" title="Xóa">
+                                                                <i class="feather icon-trash"></i>
+                                                            </a>
                                                         </td>
                                                     </tr>
                                                 <?php endforeach; ?>
