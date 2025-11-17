@@ -42,33 +42,33 @@ class TourController
     public function AddMenu()
     {
 
-    $category = null; // default
+        $category = null; // default
 
-    if (isset($_GET['id'])) {
-        $category = $this->modelTour->getCategoryById($_GET['id']);
-    }
+        if (isset($_GET['id'])) {
+            $category = $this->modelTour->getCategoryById($_GET['id']);
+        }
 
-    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
-            // Nếu có id => Cập nhật
-            if (!empty($_POST['id'])) {
+                // Nếu có id => Cập nhật
+                if (!empty($_POST['id'])) {
+                    $this->modelTour->updateCategory($_POST['id'], $name);
+                }
+                // Không có id => thêm mới
+                else {
+                    $this->modelTour->addCategory($name);
+                }
+
+            if (isset($_POST['id']) && !empty($_POST['id'])) {
                 $this->modelTour->updateCategory($_POST['id'], $name);
-            }
-            // Không có id => thêm mới
-            else {
+            } else {
                 $this->modelTour->addCategory($name);
             }
 
-        if (isset($_POST['id']) && !empty($_POST['id'])) {
-            $this->modelTour->updateCategory($_POST['id'], $name);
-        } else {
-            $this->modelTour->addCategory($name);
+            header("Location: ?act=menu-tour");
+            exit;
         }
-
-        header("Location: ?act=menu-tour");
-        exit;
     }
-
     public function AddBooking()
     {
         require_once './views/booking/add_booking.php';
