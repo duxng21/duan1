@@ -9,7 +9,7 @@
         </div>
         <div class="content-body">
             <!-- Thông báo -->
-            <?php require_once __DIR__ . '/../layouts/alert.php'; ?>
+            <?php require_once __DIR__ . '/../core/alert.php'; ?>
 
             <section id="basic-datatable">
                 <div class="row">
