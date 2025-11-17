@@ -25,38 +25,30 @@ class TourController
     public function MenuTour()
     {
 
-        // Xử lý xoá
-        if (isset($_GET['delete_id'])) {
-            $id = $_GET['delete_id'];
-            $this->modelTour->deleteCategory($id);
-            header("Location: index.php?controller=tour&action=MenuTour");
-            exit;
-        }
-
-        // Lấy danh sách danh mục từ model
-        $categories = $this->modelTour->getCategories();
-
-        require_once './views/quanlytour/menu_tour.php';
+    // Xử lý xoá
+    if (isset($_GET['delete_id'])) {
+        $id = $_GET['delete_id'];
+        $this->modelTour->deleteCategory($id);
+        header("Location: ?act=menu-tour");
+        exit;
     }
+
+    $categories = $this->modelTour->getCategories();
+    require_once './views/quanlytour/menu_tour.php';
+}
+
 
     // ======================= ADD MENU (ADD + UPDATE FORM) ==========================
     public function AddMenu()
     {
 
-        // Nếu có id => đang sửa => lấy dữ liệu load form
-        if (isset($_GET['id'])) {
-            $id = $_GET['id'];
-            $category = $this->modelTour->getCategoryById($id);
-        }
+    $category = null; // default
 
-        // Nếu submit form
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_GET['id'])) {
+        $category = $this->modelTour->getCategoryById($_GET['id']);
+    }
 
-            $name = $_POST['category_name'] ?? null;
-
-            if (!$name) {
-                die("Tên danh mục không được để trống");
-            }
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             // Nếu có id => Cập nhật
             if (!empty($_POST['id'])) {
@@ -67,11 +59,14 @@ class TourController
                 $this->modelTour->addCategory($name);
             }
 
-            header("Location: index.php?controller=tour&action=MenuTour");
-            exit;
+        if (isset($_POST['id']) && !empty($_POST['id'])) {
+            $this->modelTour->updateCategory($_POST['id'], $name);
+        } else {
+            $this->modelTour->addCategory($name);
         }
 
-        require_once './views/quanlytour/add_menu.php';
+        header("Location: ?act=menu-tour");
+        exit;
     }
 
     public function AddBooking()

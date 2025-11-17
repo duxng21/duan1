@@ -13,23 +13,28 @@
                     <div class="col-md-6 col-12 mx-auto">
                         <div class="card">
                             <div class="card-header">
-                                <h4 class="card-title">Thêm Danh Mục Mới</h4>
+                                <h4 class="card-title">
+                                    <?= isset($category) ? "Sửa Danh Mục" : "Thêm Danh Mục Mới" ?>
+                                </h4>
                             </div>
                             <div class="card-content">
                                 <div class="card-body">
 
-                                    <!-- ⭐⭐ CHỈ THÊM THAY ĐỔI TẠI DÒNG NÀY ⭐⭐ -->
-                                    <form class="form" method="POST" action="index.php?controller=tour&action=AddMenu">
+                                    <!-- ⭐ Form đúng router -->
+                                    <form class="form" method="POST" action="?act=them-danh-muc">
+
+                                        <!-- Hidden ID để biết đang sửa hay thêm -->
+                                        <input type="hidden" name="id" value="<?= $category['category_id'] ?? '' ?>">
 
                                         <div class="form-body">
                                             <div class="row">
                                                 <div class="col-12">
                                                     <div class="form-label-group position-relative has-icon-left">
 
-                                                        <!-- ⭐⭐ CHỈ THÊM name="category_name" ⭐⭐ -->
                                                         <input type="text" id="first-name-floating-icon"
                                                             class="form-control" name="category_name"
-                                                            placeholder="Tên danh mục">
+                                                            placeholder="Tên danh mục"
+                                                            value="<?= $category['category_name'] ?? '' ?>">
 
                                                         <div class="form-control-position">
                                                             <i class="feather icon-hash"></i>
@@ -37,18 +42,23 @@
                                                         <label for="first-name-floating-icon">Tên danh mục</label>
                                                     </div>
                                                 </div>
+
                                                 <div class="col-12">
                                                     <button type="submit"
-                                                        class="btn btn-primary mr-1 mb-1 waves-effect waves-light">Thêm</button>
-                                                    <button type="reset"
-                                                        class="btn btn-outline-warning mr-1 mb-1 waves-effect waves-light">Đặt
-                                                        lại</button>
+                                                        class="btn btn-primary mr-1 mb-1 waves-effect waves-light">
+                                                        <?= isset($category) ? "Cập nhật" : "Thêm" ?>
+                                                    </button>
+
+                                                    <a href="?act=menu-tour"
+                                                        class="btn btn-outline-warning mr-1 mb-1 waves-effect waves-light">
+                                                        Hủy
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>
 
                                     </form>
-                                    <!-- ⭐⭐ HẾT PHẦN THÊM ⭐⭐ -->
+                                    <!-- ⭐ Kết thúc form -->
 
                                 </div>
                             </div>

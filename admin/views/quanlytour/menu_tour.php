@@ -15,11 +15,11 @@
                             <div class="card-header">
                                 <h4 class="card-title">Danh mục Tour</h4>
 
-                                <!-- ⭐ Thay link này để gọi đúng controller -->
-                                <a href="index.php?controller=tour&action=AddMenu">
-                                    <button type="button"
-                                        class="btn btn-primary mr-1 mb-1 waves-effect waves-light">Thêm danh
-                                        mục</button>
+                                <!-- ⭐ LINK ĐÚNG THEO ROUTER -->
+                                <a href="?act=them-danh-muc">
+                                    <button type="button" class="btn btn-primary mr-1 mb-1 waves-effect waves-light">
+                                        Thêm danh mục
+                                    </button>
                                 </a>
 
                             </div>
@@ -35,7 +35,6 @@
                                                 </tr>
                                             </thead>
 
-                                            <!-- ⭐⭐ THAY PHẦN NÀY THÀNH DỮ LIỆU ĐỘNG ⭐⭐ -->
                                             <tbody>
                                                 <?php if (!empty($categories)) : ?>
                                                 <?php foreach ($categories as $index => $category) : ?>
@@ -43,21 +42,20 @@
                                                     <td><?= $index + 1 ?></td>
                                                     <td><?= $category['category_name']; ?></td>
                                                     <td>
-                                                        <!-- Nút sửa -->
-                                                        <a
-                                                            href="index.php?controller=tour&action=AddMenu&id=<?= $category['category_id'] ?>">
+                                                        <!-- ⭐ SỬA ĐÚNG ROUTER -->
+                                                        <a href="?act=them-danh-muc&id=<?= $category['category_id'] ?>">
                                                             <button type="button"
                                                                 class="btn btn-sm bg-gradient-warning mr-1 mb-1 waves-effect waves-light">
                                                                 Sửa
                                                             </button>
                                                         </a>
 
-                                                        <!-- Nút xoá -->
-                                                        <a href="index.php?controller=tour&action=MenuTour&delete_id=<?= $category['category_id'] ?>"
+                                                        <!-- ⭐ XOÁ ĐÚNG ROUTER -->
+                                                        <a href="?act=menu-tour&delete_id=<?= $category['category_id'] ?>"
                                                             onclick="return confirm('Bạn có chắc chắn muốn xoá không?');">
                                                             <button type="button"
                                                                 class="btn btn-sm bg-gradient-danger mr-1 mb-1 waves-effect waves-light">
-                                                                Xoá
+                                                                Xóa
                                                             </button>
                                                         </a>
                                                     </td>
@@ -65,12 +63,12 @@
                                                 <?php endforeach; ?>
                                                 <?php else : ?>
                                                 <tr>
-                                                    <td colspan="3" class="text-center text-muted">Không có danh mục nào
+                                                    <td colspan="3" class="text-center text-muted">
+                                                        Không có danh mục nào
                                                     </td>
                                                 </tr>
                                                 <?php endif; ?>
                                             </tbody>
-                                            <!-- ⭐⭐ HẾT PHẦN THAY ⭐⭐ -->
 
                                             <tfoot></tfoot>
                                         </table>
