@@ -8,6 +8,9 @@
         <div class="content-header row">
         </div>
         <div class="content-body">
+            <!-- Thông báo -->
+            <?php require_once __DIR__ . '/../layouts/alert.php'; ?>
+
             <section id="basic-vertical-layouts">
                 <div class="row match-height">
                     <div class="col-md-6 col-12 mx-auto">
