@@ -1,5 +1,5 @@
-<?php require_once __DIR__ . '/../layouts/header.php'; ?>
-<?php require_once __DIR__ . '/../layouts/menu.php'; ?>
+<?php require_once __DIR__ . '/../core/header.php'; ?>
+<?php require_once __DIR__ . '/../core/menu.php'; ?>
 <!-- BEGIN: Content-->
 <div class="app-content content">
     <div class="content-overlay"></div>
@@ -129,4 +129,4 @@
     </div>
 </div>
 <!-- END: Content-->
-<?php require_once __DIR__ . '/../layouts/footer.php'; ?>
+<?php require_once __DIR__ . '/../core/footer.php'; ?>
