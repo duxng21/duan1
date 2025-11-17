@@ -1,5 +1,5 @@
-<?php require_once __DIR__ . '/../layouts/header.php'; ?>
-<?php require_once __DIR__ . '/../layouts/menu.php'; ?>
+<?php require_once __DIR__ . '/../core/header.php'; ?>
+<?php require_once __DIR__ . '/../core/menu.php'; ?>
 <!-- BEGIN: Content-->
 <div class="app-content content">
     <div class="content-overlay"></div>
@@ -16,18 +16,49 @@
                     <div class="col-md-6 col-12 mx-auto">
                         <div class="card">
                             <div class="card-header">
-                                <h4 class="card-title">Sửa danh sách Tour</h4>
+                                <h4 class="card-title">Chỉnh Sửa Tour</h4>
                             </div>
                             <div class="card-content">
                                 <div class="card-body">
-                                    <form class="form form-vertical">
-                                        <div class="form-body">
-                                            <div class="row">
-                                                <div class="col-12">
-                                                    <div class="form-group">
-                                                        <label for="first-name-vertical">Tên Tour</label>
-                                                        <input type="text" id="name" class="form-control" name="name" placeholder="Tên Tour">
-                                                    </div>
+                                    <form action="?act=cap-nhat-tour&id=<?= $tour['tour_id'] ?>" method="POST"
+                                        enctype="multipart/form-data">
+
+                                        <div class="form-group">
+                                            <label for="category_id">Danh mục <span class="text-danger">*</span></label>
+                                            <select name="category_id" id="category_id" class="form-control" required>
+                                                <option value="">-- Chọn danh mục --</option>
+                                                <?php if (!empty($categories)): ?>
+                                                    <?php foreach ($categories as $cat): ?>
+                                                        <option value="<?= $cat['category_id'] ?>"
+                                                            <?= ($tour['category_id'] == $cat['category_id']) ? 'selected' : '' ?>>
+                                                            <?= htmlspecialchars($cat['category_name']) ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="tour_name">Tên tour <span class="text-danger">*</span></label>
+                                            <input type="text" name="tour_name" id="tour_name" class="form-control"
+                                                placeholder="Nhập tên tour"
+                                                value="<?= htmlspecialchars($tour['tour_name'] ?? '') ?>" required>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="code">Mã tour</label>
+                                            <input type="text" name="code" id="code" class="form-control"
+                                                placeholder="VD: TOUR001"
+                                                value="<?= htmlspecialchars($tour['code'] ?? '') ?>">
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="tour_image">Hình ảnh</label>
+                                            <?php if (!empty($tour['tour_image'])): ?>
+                                                <div class="mb-2">
+                                                    <img src="<?= BASE_URL . $tour['tour_image'] ?>" width="150"
+                                                        class="img-thumbnail">
+                                                    <p class="text-muted small">Ảnh hiện tại</p>
                                                 </div>
                                             <?php endif; ?>
                                             <input type="file" name="tour_image" id="tour_image" class="form-control"
@@ -36,12 +67,12 @@
                                                 đổi)</small>
                                         </div>
 
-                                        <!-- <div class="form-group">
+                                        <div class="form-group">
                                             <label for="tour_price">Giá tour <span class="text-danger">*</span></label>
                                             <input type="number" name="tour_price" id="tour_price" class="form-control"
                                                 placeholder="VD: 5000000" value="<?= $tour['tour_price'] ?? 0 ?>"
                                                 min="0" required>
-                                        </div> -->
+                                        </div>
 
 
 
@@ -101,4 +132,4 @@
     </div>
 </div>
 <!-- END: Content-->
-<?php require_once __DIR__ . '/../layouts/footer.php'; ?>
+<?php require_once __DIR__ . '/../core/footer.php'; ?>
