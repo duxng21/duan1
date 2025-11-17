@@ -21,6 +21,8 @@
     <link rel="stylesheet" type="text/css" href="views/assetz/app-assets/vendors/css/extensions/tether.min.css">
     <link rel="stylesheet" type="text/css" href="views/assetz/app-assets/vendors/css/extensions/shepherd-theme-default.css">
     <link rel="stylesheet" type="text/css" href="views/assetz/app-assets/vendors/css/tables/datatable/datatables.min.css">
+    <link rel="stylesheet" type="text/css" href="views/assetz/app-assets/vendors/css/file-uploaders/dropzone.min.css">
+    <link rel="stylesheet" type="text/css" href="views/assetz/app-assets/vendors/css/tables/datatable/extensions/dataTables.checkboxes.css">
     <!-- END: Vendor CSS-->
 
     <!-- BEGIN: Theme CSS-->
@@ -37,6 +39,10 @@
     <link rel="stylesheet" type="text/css" href="views/assetz/app-assets/css/pages/dashboard-analytics.css">
     <link rel="stylesheet" type="text/css" href="views/assetz/app-assets/css/pages/card-analytics.css">
     <link rel="stylesheet" type="text/css" href="views/assetz/app-assets/css/plugins/tour/tour.css">
+    <link rel="stylesheet" type="text/css" href="views/assetz/app-assets/css/core/menu/menu-types/vertical-menu.css">
+    <link rel="stylesheet" type="text/css" href="views/assetz/app-assets/css/core/colors/palette-gradient.css">
+    <link rel="stylesheet" type="text/css" href="views/assetz/app-assets/css/plugins/file-uploaders/dropzone.css">
+    <link rel="stylesheet" type="text/css" href="views/assetz/app-assets/css/pages/data-list-view.css">
     <!-- END: Page CSS-->
 
     <!-- BEGIN: Custom CSS-->
