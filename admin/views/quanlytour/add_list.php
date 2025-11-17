@@ -45,7 +45,7 @@
                                                 placeholder="VD: TOUR001">
                                         </div>
 
-                                        
+
 
                                         <div class="form-group">
                                             <label for="description_short">Mô tả ngắn</label>
