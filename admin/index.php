@@ -1,4 +1,8 @@
 <?php
+// Set UTF-8 encoding
+header('Content-Type: text/html; charset=UTF-8');
+mb_internal_encoding('UTF-8');
+
 // Start session
 session_start();
 
@@ -10,11 +14,18 @@ require_once '../commons/function.php'; // Hàm hỗ trợ
 
 // Require toàn bộ file Controllers
 require_once './controllers/TourController.php';
+require_once './controllers/ScheduleController.php';
+require_once './controllers/StaffController.php';
 require_once './controllers/AuthController.php';
+require_once './controllers/BookingController.php';
 
 // Require toàn bộ file Models
 require_once './models/Tour.php';
 require_once './models/Category.php';
+require_once './models/TourDetail.php';
+require_once './models/TourSchedule.php';
+require_once './models/Staff.php';
+require_once './models/Booking.php';
 // require_once './models/ProductModel.php';
 
 // Route
@@ -29,14 +40,55 @@ match ($act) {
     'list-tour' => (new TourController())->ListTour(),
     'menu-tour' => (new TourController())->MenuTour(),
     'them-danh-muc' => (new TourController())->AddMenu(),
-    'them-booking' => (new TourController())->AddBooking(),
-    'list-booking' => (new TourController())->ListBooking(),
     'add-list' => (new TourController())->AddList(),
     'luu-tour' => (new TourController())->store(),
     'edit-list' => (new TourController())->EditList(),
     'cap-nhat-tour' => (new TourController())->update(),
     'xoa-tour' => (new TourController())->delete(),
 
+    // Chi tiết tour - Lịch trình & Thư viện ảnh
+    'chi-tiet-tour' => (new TourController())->TourDetail(),
+    'them-lich-trinh' => (new TourController())->ThemLichTrinh(),
+    'xoa-lich-trinh' => (new TourController())->XoaLichTrinh(),
+    'them-anh-tour' => (new TourController())->ThemAnhTour(),
+    'xoa-anh-tour' => (new TourController())->XoaAnhTour(),
+    'luu-chinh-sach' => (new TourController())->LuuChinhSach(),
+    'luu-tags' => (new TourController())->LuuTags(),
+
+    // Lịch khởi hành & Phân bổ nhân sự
+    'danh-sach-lich-khoi-hanh' => (new ScheduleController())->ListSchedule(),
+    'them-lich-khoi-hanh' => (new ScheduleController())->AddSchedule(),
+    'luu-lich-khoi-hanh' => (new ScheduleController())->StoreSchedule(),
+    'chi-tiet-lich-khoi-hanh' => (new ScheduleController())->ScheduleDetail(),
+    'sua-lich-khoi-hanh' => (new ScheduleController())->EditSchedule(),
+    'cap-nhat-lich-khoi-hanh' => (new ScheduleController())->UpdateSchedule(),
+    'xoa-lich-khoi-hanh' => (new ScheduleController())->DeleteSchedule(),
+    'phan-cong-nhan-su' => (new ScheduleController())->AssignStaff(),
+    'xoa-nhan-su-khoi-lich' => (new ScheduleController())->RemoveStaff(),
+    'phan-bo-dich-vu' => (new ScheduleController())->AssignService(),
+    'xoa-dich-vu-khoi-lich' => (new ScheduleController())->RemoveService(),
+    'xem-lich-theo-thang' => (new ScheduleController())->CalendarView(),
+    'xuat-bao-cao-lich' => (new ScheduleController())->ExportSchedule(),
+
+    // Quản lý nhân sự
+    'danh-sach-nhan-su' => (new StaffController())->ListStaff(),
+    'them-nhan-su' => (new StaffController())->AddStaff(),
+    'luu-nhan-su' => (new StaffController())->StoreStaff(),
+    'chi-tiet-nhan-su' => (new StaffController())->StaffDetail(),
+    'sua-nhan-su' => (new StaffController())->EditStaff(),
+    'cap-nhat-nhan-su' => (new StaffController())->UpdateStaff(),
+    'xoa-nhan-su' => (new StaffController())->DeleteStaff(),
+
+    // Quản lý Booking
+    'danh-sach-booking' => (new BookingController())->ListBooking(),
+    'them-booking' => (new BookingController())->AddBooking(),
+    'luu-booking' => (new BookingController())->StoreBooking(),
+    'chi-tiet-booking' => (new BookingController())->BookingDetail(),
+    'sua-booking' => (new BookingController())->EditBooking(),
+    'cap-nhat-booking' => (new BookingController())->UpdateBooking(),
+    'cap-nhat-trang-thai-booking' => (new BookingController())->UpdateStatus(),
+    'huy-booking' => (new BookingController())->CancelBooking(),
+    'in-phieu-booking' => (new BookingController())->PrintBooking(),
 
     //auth
     'login' => (new AuthController())->login(),
