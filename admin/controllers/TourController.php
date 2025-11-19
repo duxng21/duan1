@@ -3,11 +3,13 @@ class TourController
 {
     public $modelTour;
     public $modelCategory;
+    public $modelTourDetail;
 
     public function __construct()
     {
         $this->modelTour = new Tour();
         $this->modelCategory = new Category();
+        $this->modelTourDetail = new TourDetail();
     }
 
     public function home()
@@ -226,5 +228,231 @@ class TourController
         }
         header('Location: ?act=list-tour');
         exit();
+    }
+
+    // ==================== CHI TIẾT TOUR - LỊCH TRÌNH & QUẢN LÝ ====================
+
+    public function TourDetail()
+    {
+        $tour_id = $_GET['id'] ?? null;
+        if (!$tour_id) {
+            $_SESSION['error'] = 'Thiếu tham số id!';
+            header('Location: ?act=list-tour');
+            exit();
+        }
+
+        $tour = $this->modelTour->getById($tour_id);
+        if (!$tour) {
+            $_SESSION['error'] = 'Không tìm thấy tour!';
+            header('Location: ?act=list-tour');
+            exit();
+        }
+
+        // Lấy lịch trình
+        $itineraries = $this->modelTourDetail->getItineraries($tour_id);
+
+        // Lấy thư viện ảnh
+        $gallery = $this->modelTourDetail->getGallery($tour_id);
+
+        // Lấy chính sách
+        $policies = $this->modelTourDetail->getPolicies($tour_id);
+
+        // Lấy tất cả tags và tags của tour này
+        $allTags = $this->modelTourDetail->getAllTags();
+        $tourTags = $this->modelTourDetail->getTourTags($tour_id);
+
+        require_once './views/quanlytour/tour_detail.php';
+    }
+
+    // ==================== LỊCH TRÌNH ====================
+
+    public function ThemLichTrinh()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            try {
+                $tour_id = $_POST['tour_id'] ?? null;
+                if (!$tour_id) {
+                    $_SESSION['error'] = 'Thiếu tour_id!';
+                    header('Location: ?act=list-tour');
+                    exit();
+                }
+
+                $data = [
+                    'tour_id' => $tour_id,
+                    'day_number' => $_POST['day_number'] ?? 1,
+                    'title' => $_POST['title'] ?? '',
+                    'description' => $_POST['description'] ?? '',
+                    'activities' => $_POST['activities'] ?? ''
+                ];
+
+                // Nếu có ID thì update, không thì create
+                if (!empty($_POST['itinerary_id'])) {
+                    $this->modelTourDetail->updateItinerary($_POST['itinerary_id'], $data);
+                    $_SESSION['success'] = 'Cập nhật lịch trình thành công!';
+                } else {
+                    $this->modelTourDetail->createItinerary($data);
+                    $_SESSION['success'] = 'Thêm lịch trình thành công!';
+                }
+
+                header('Location: ?act=chi-tiet-tour&id=' . $tour_id);
+                exit();
+            } catch (Exception $e) {
+                $_SESSION['error'] = 'Lỗi: ' . $e->getMessage();
+                header('Location: ?act=chi-tiet-tour&id=' . ($_POST['tour_id'] ?? ''));
+                exit();
+            }
+        }
+    }
+
+    public function XoaLichTrinh()
+    {
+        try {
+            $id = $_GET['id'] ?? null;
+            $tour_id = $_GET['tour_id'] ?? null;
+
+            if (!$id || !$tour_id) {
+                $_SESSION['error'] = 'Thiếu tham số!';
+            } else {
+                $result = $this->modelTourDetail->deleteItinerary($id);
+                if ($result) {
+                    $_SESSION['success'] = 'Xóa lịch trình thành công!';
+                } else {
+                    $_SESSION['error'] = 'Xóa lịch trình thất bại!';
+                }
+            }
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Lỗi: ' . $e->getMessage();
+        }
+        header('Location: ?act=chi-tiet-tour&id=' . $tour_id);
+        exit();
+    }
+
+    // ==================== THƯ VIỆN ẢNH ====================
+
+    public function ThemAnhTour()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            try {
+                $tour_id = $_POST['tour_id'] ?? null;
+                if (!$tour_id) {
+                    $_SESSION['error'] = 'Thiếu tour_id!';
+                    header('Location: ?act=list-tour');
+                    exit();
+                }
+
+                // Xử lý upload ảnh
+                if (isset($_FILES['image_url']) && $_FILES['image_url']['error'] === 0) {
+                    $image_url = uploadFile($_FILES['image_url'], 'uploads/tours/');
+                    if (!$image_url) {
+                        $_SESSION['error'] = 'Upload ảnh thất bại!';
+                        header('Location: ?act=chi-tiet-tour&id=' . $tour_id);
+                        exit();
+                    }
+
+                    $data = [
+                        'tour_id' => $tour_id,
+                        'image_url' => $image_url,
+                        'caption' => $_POST['caption'] ?? '',
+                        'is_featured' => isset($_POST['is_featured']) ? 1 : 0
+                    ];
+
+                    $this->modelTourDetail->addImage($data);
+                    $_SESSION['success'] = 'Thêm ảnh thành công!';
+                } else {
+                    $_SESSION['error'] = 'Vui lòng chọn ảnh!';
+                }
+
+                header('Location: ?act=chi-tiet-tour&id=' . $tour_id);
+                exit();
+            } catch (Exception $e) {
+                $_SESSION['error'] = 'Lỗi: ' . $e->getMessage();
+                header('Location: ?act=chi-tiet-tour&id=' . ($_POST['tour_id'] ?? ''));
+                exit();
+            }
+        }
+    }
+
+    public function XoaAnhTour()
+    {
+        try {
+            $id = $_GET['id'] ?? null;
+            $tour_id = $_GET['tour_id'] ?? null;
+
+            if (!$id || !$tour_id) {
+                $_SESSION['error'] = 'Thiếu tham số!';
+            } else {
+                $result = $this->modelTourDetail->deleteImage($id);
+                if ($result) {
+                    $_SESSION['success'] = 'Xóa ảnh thành công!';
+                } else {
+                    $_SESSION['error'] = 'Xóa ảnh thất bại!';
+                }
+            }
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Lỗi: ' . $e->getMessage();
+        }
+        header('Location: ?act=chi-tiet-tour&id=' . $tour_id);
+        exit();
+    }
+
+    // ==================== CHÍNH SÁCH ====================
+
+    public function LuuChinhSach()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            try {
+                $tour_id = $_POST['tour_id'] ?? null;
+                if (!$tour_id) {
+                    $_SESSION['error'] = 'Thiếu tour_id!';
+                    header('Location: ?act=list-tour');
+                    exit();
+                }
+
+                $data = [
+                    'cancellation_policy' => $_POST['cancellation_policy'] ?? '',
+                    'change_policy' => $_POST['change_policy'] ?? '',
+                    'payment_policy' => $_POST['payment_policy'] ?? '',
+                    'notes' => $_POST['notes'] ?? ''
+                ];
+
+                $this->modelTourDetail->savePolicies($tour_id, $data);
+                $_SESSION['success'] = 'Lưu chính sách thành công!';
+
+                header('Location: ?act=chi-tiet-tour&id=' . $tour_id);
+                exit();
+            } catch (Exception $e) {
+                $_SESSION['error'] = 'Lỗi: ' . $e->getMessage();
+                header('Location: ?act=chi-tiet-tour&id=' . ($_POST['tour_id'] ?? ''));
+                exit();
+            }
+        }
+    }
+
+    // ==================== TAGS ====================
+
+    public function LuuTags()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            try {
+                $tour_id = $_POST['tour_id'] ?? null;
+                if (!$tour_id) {
+                    $_SESSION['error'] = 'Thiếu tour_id!';
+                    header('Location: ?act=list-tour');
+                    exit();
+                }
+
+                $tag_ids = $_POST['tag_ids'] ?? [];
+
+                $this->modelTourDetail->saveTourTags($tour_id, $tag_ids);
+                $_SESSION['success'] = 'Lưu tags thành công!';
+
+                header('Location: ?act=chi-tiet-tour&id=' . $tour_id);
+                exit();
+            } catch (Exception $e) {
+                $_SESSION['error'] = 'Lỗi: ' . $e->getMessage();
+                header('Location: ?act=chi-tiet-tour&id=' . ($_POST['tour_id'] ?? ''));
+                exit();
+            }
+        }
     }
 }

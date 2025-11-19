@@ -1,28 +1,34 @@
 <?php
 
 // Kết nối CSDL qua PDO
-function connectDB() {
+function connectDB()
+{
     // Kết nối CSDL
     $host = DB_HOST;
     $port = DB_PORT;
     $dbname = DB_NAME;
 
     try {
-        $conn = new PDO("mysql:host=$host;port=$port;dbname=$dbname", DB_USERNAME, DB_PASSWORD);
+        $conn = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", DB_USERNAME, DB_PASSWORD);
 
         // cài đặt chế độ báo lỗi là xử lý ngoại lệ
         $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         // cài đặt chế độ trả dữ liệu
         $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-    
+
+        // Set UTF-8 encoding
+        $conn->exec("SET NAMES 'utf8mb4'");
+        $conn->exec("SET CHARACTER SET utf8mb4");
+
         return $conn;
     } catch (PDOException $e) {
         echo ("Connection failed: " . $e->getMessage());
     }
 }
 
-function uploadFile($file, $folderSave){
+function uploadFile($file, $folderSave)
+{
     $file_upload = $file;
     $pathStorage = $folderSave . rand(10000, 99999) . $file_upload['name'];
 
@@ -35,7 +41,8 @@ function uploadFile($file, $folderSave){
     return null;
 }
 
-function deleteFile($file){
+function deleteFile($file)
+{
     $pathDelete = PATH_ROOT . $file;
     if (file_exists($pathDelete)) {
         unlink($pathDelete); // Hàm unlink dùng để xóa file
