@@ -40,7 +40,7 @@ function isActive($routes) {
                 <ul class="menu-content">
                     <li class="<?= isActive(['them-booking']) ? 'active' : '' ?>"><a href="?act=them-booking"><i class="feather icon-circle"></i><span class="menu-item" data-i18n="Tạo Booking">Tạo Booking</span></a>
                     </li>
-                    <li class="<?= isActive(['#']) ? 'active' : '' ?>"><a href="#"><i class="feather icon-circle"></i><span class="menu-item" data-i18n="Quản lý Booking">Quản lý Booking</span></a>
+                    <li class="<?= isActive(['list-booking']) ? 'active' : '' ?>"><a href="?act=list-booking"><i class="feather icon-circle"></i><span class="menu-item" data-i18n="Quản lý Booking">Quản lý Booking</span></a>
                     </li>
                 </ul>
             </li>

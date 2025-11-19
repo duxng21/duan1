@@ -32,15 +32,7 @@ $(document).ready(function() {
     order: [[1, "asc"]],
     bInfo: false,
     pageLength: 4,
-    buttons: [
-      {
-        text: "<i class='feather icon-plus'></i> Thêm mới",
-        action: function() {
-          window.location.href = "?act=add-list"
-        },
-        className: "btn-outline-primary"
-      }
-    ],
+    buttons: [],
     initComplete: function(settings, json) {
       $(".dt-buttons .btn").removeClass("btn-secondary")
     }

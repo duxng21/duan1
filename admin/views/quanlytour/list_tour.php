@@ -10,26 +10,37 @@
         </div>
         <div class="content-body">
             <section id="data-list-view" class="data-list-view-header">
-                <form method="GET" action="" class="form-inline">
-                    <input type="hidden" name="act" value="list-tour">
+                <div class="d-flex justify-content-between align-items-center mb-2">
 
-                    <div class="form-group mr-1 mb-1">
-                        <label class="mr-50">Lọc theo danh mục:</label>
-                        <select name="category_id" class="custom-select" onchange="this.form.submit()">
-                            <option value="">Tất cả danh mục</option>
-                            <?php foreach ($categories as $cat): ?>
-                            <option value="<?= $cat['category_id'] ?>"
-                                <?= (isset($_GET['category_id']) && $_GET['category_id'] == $cat['category_id']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($cat['category_name']) ?>
-                            </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+    <!-- FILTER BÊN TRÁI -->
+    <form method="GET" action="" class="form-inline m-0 p-0">
+        <input type="hidden" name="act" value="list-tour">
 
-                    <?php if (!empty($_GET['category_id'])): ?>
-                        <a href="?act=list-tour" class="btn btn-outline-danger btn-sm ml-1">Xóa lọc</a>
-                    <?php endif; ?>
-                </form>
+        <div class="form-group mr-1 mb-1">
+            <label class="mr-50">Lọc theo danh mục:</label>
+            <select name="category_id" class="custom-select" onchange="this.form.submit()">
+                <option value="">Tất cả danh mục</option>
+                <?php foreach ($categories as $cat): ?>
+                <option value="<?= $cat['category_id'] ?>"
+                    <?= (isset($_GET['category_id']) && $_GET['category_id'] == $cat['category_id']) ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($cat['category_name']) ?>
+                </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <?php if (!empty($_GET['category_id'])): ?>
+            <a href="?act=list-tour" class="btn btn-outline-danger btn-sm ml-1">Xóa lọc</a>
+        <?php endif; ?>
+    </form>
+
+    <!-- NÚT THÊM MỚI BÊN PHẢI -->
+    <a href="?act=add-list" class="btn btn-primary">
+        <i class="feather icon-plus"></i> Thêm mới
+    </a>
+
+</div>
+
                     <!-- DataTable starts -->
                     <div class="table-responsive">
                         <!-- Thay đổi: đồng bộ header và body với bảng bên dưới, sửa lỗi ký tự '<' dư và escape dữ liệu -->
