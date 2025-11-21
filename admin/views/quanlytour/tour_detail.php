@@ -178,7 +178,7 @@
                                                             id="tag_<?= $tag['tag_id'] ?>" 
                                                             name="tags[]" 
                                                             value="<?= $tag['tag_id'] ?>"
-                                                            <?= in_array($tag['tag_id'], $selectedTags ?? []) ? 'checked' : '' ?>>
+                                                            <?= in_array($tag['tag_id'], $tourTags ?? []) ? 'checked' : '' ?>>
                                                         <label class="custom-control-label" for="tag_<?= $tag['tag_id'] ?>">
                                                             <?= htmlspecialchars($tag['tag_name']) ?>
                                                         </label>

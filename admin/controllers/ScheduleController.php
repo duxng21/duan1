@@ -14,17 +14,44 @@ class ScheduleController
 
     public function ListSchedule()
     {
+        requireLogin();
+        requirePermission('tour.view');
         $tour_id = $_GET['tour_id'] ?? null;
 
-        if ($tour_id) {
-            $schedules = $this->modelSchedule->getSchedulesByTour($tour_id);
-            $tour = $this->modelTour->getById($tour_id);
+        if (isGuide()) {
+            // HDV: chỉ xem lịch được phân công (không lọc theo tour nếu không có)
+            $staff_id = $_SESSION['staff_id'] ?? null;
+            $all = $staff_id ? $this->modelSchedule->getAllStaffAssignments(['staff_id' => $staff_id]) : [];
+            // Chuyển assignments thành schedules duy nhất
+            $unique = [];
+            foreach ($all as $a) {
+                $unique[$a['schedule_id']] = $a['schedule_id'];
+            }
+            $schedulesRaw = [];
+            foreach ($unique as $sid) {
+                $s = $this->modelSchedule->getScheduleById($sid);
+                if ($s)
+                    $schedulesRaw[] = $s;
+            }
+            if ($tour_id) {
+                $schedules = array_filter($schedulesRaw, function ($s) use ($tour_id) {
+                    return $s['tour_id'] == $tour_id; });
+                $tour = $this->modelTour->getById($tour_id);
+            } else {
+                $schedules = $schedulesRaw;
+                $tour = null;
+            }
+            $tours = []; // Không cần danh sách đầy đủ đối với HDV
         } else {
-            $schedules = $this->modelSchedule->getAllSchedules();
-            $tour = null;
+            if ($tour_id) {
+                $schedules = $this->modelSchedule->getSchedulesByTour($tour_id);
+                $tour = $this->modelTour->getById($tour_id);
+            } else {
+                $schedules = $this->modelSchedule->getAllSchedules();
+                $tour = null;
+            }
+            $tours = $this->modelTour->getAll();
         }
-
-        $tours = $this->modelTour->getAll();
         require_once './views/schedule/list_schedule.php';
     }
 
@@ -32,6 +59,7 @@ class ScheduleController
 
     public function AddSchedule()
     {
+        requireRole('ADMIN');
         $tour_id = $_GET['tour_id'] ?? null;
         $tours = $this->modelTour->getAll();
         require_once './views/schedule/add_schedule.php';
@@ -39,6 +67,7 @@ class ScheduleController
 
     public function StoreSchedule()
     {
+        requireRole('ADMIN');
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 if (empty($_POST['tour_id'])) {
@@ -82,13 +111,15 @@ class ScheduleController
 
     public function ScheduleDetail()
     {
+        requireLogin();
         $schedule_id = $_GET['id'] ?? null;
         if (!$schedule_id) {
             $_SESSION['error'] = 'Thiếu tham số schedule_id!';
             header('Location: ?act=danh-sach-lich-khoi-hanh');
             exit();
         }
-
+        // Quyền xem: Admin hoặc HDV được phân công
+        requireOwnScheduleOrAdmin($schedule_id, 'schedule.view_own');
         $schedule = $this->modelSchedule->getScheduleById($schedule_id);
         if (!$schedule) {
             $_SESSION['error'] = 'Không tìm thấy lịch khởi hành!';
@@ -100,6 +131,7 @@ class ScheduleController
         $services = $this->modelSchedule->getScheduleServices($schedule_id);
         $allStaff = $this->modelSchedule->getAllStaff();
         $allServices = $this->modelSchedule->getAllServices();
+        $journeyLogs = $this->modelSchedule->getJourneyLogs($schedule_id);
 
         require_once './views/schedule/schedule_detail.php';
     }
@@ -108,6 +140,7 @@ class ScheduleController
 
     public function EditSchedule()
     {
+        requireRole('ADMIN');
         $schedule_id = $_GET['id'] ?? null;
         if (!$schedule_id) {
             $_SESSION['error'] = 'Thiếu tham số schedule_id!';
@@ -128,6 +161,7 @@ class ScheduleController
 
     public function UpdateSchedule()
     {
+        requireRole('ADMIN');
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $schedule_id = $_GET['id'] ?? null;
@@ -164,6 +198,7 @@ class ScheduleController
 
     public function DeleteSchedule()
     {
+        requireRole('ADMIN');
         try {
             $schedule_id = $_GET['id'] ?? null;
             if (!$schedule_id) {
@@ -183,6 +218,7 @@ class ScheduleController
 
     public function AssignStaff()
     {
+        requireRole('ADMIN');
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $schedule_id = $_POST['schedule_id'] ?? null;
@@ -215,6 +251,7 @@ class ScheduleController
 
     public function RemoveStaff()
     {
+        requireRole('ADMIN');
         try {
             $schedule_id = $_GET['schedule_id'] ?? null;
             $staff_id = $_GET['staff_id'] ?? null;
@@ -236,6 +273,7 @@ class ScheduleController
 
     public function AssignService()
     {
+        requireRole('ADMIN');
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $schedule_id = $_POST['schedule_id'] ?? null;
@@ -262,6 +300,7 @@ class ScheduleController
 
     public function RemoveService()
     {
+        requireRole('ADMIN');
         try {
             $schedule_id = $_GET['schedule_id'] ?? null;
             $service_id = $_GET['service_id'] ?? null;
@@ -283,10 +322,27 @@ class ScheduleController
 
     public function CalendarView()
     {
+        requireLogin();
+        requirePermission('tour.view');
         $month = $_GET['month'] ?? date('m');
         $year = $_GET['year'] ?? date('Y');
-
-        $schedules = $this->modelSchedule->getCalendarView($month, $year);
+        if (isGuide()) {
+            $staff_id = $_SESSION['staff_id'] ?? null;
+            $assignments = $staff_id ? $this->modelSchedule->getAllStaffAssignments(['staff_id' => $staff_id]) : [];
+            $unique = [];
+            foreach ($assignments as $a) {
+                $unique[$a['schedule_id']] = $a['schedule_id'];
+            }
+            $schedules = [];
+            foreach ($unique as $sid) {
+                $sch = $this->modelSchedule->getScheduleById($sid);
+                if ($sch && date('m', strtotime($sch['departure_date'])) == $month && date('Y', strtotime($sch['departure_date'])) == $year) {
+                    $schedules[] = $sch;
+                }
+            }
+        } else {
+            $schedules = $this->modelSchedule->getCalendarView($month, $year);
+        }
         require_once './views/schedule/calendar_view.php';
     }
 
@@ -294,6 +350,7 @@ class ScheduleController
 
     public function ExportSchedule()
     {
+        requireRole('ADMIN');
         $schedule_id = $_GET['id'] ?? null;
         if (!$schedule_id) {
             $_SESSION['error'] = 'Thiếu tham số schedule_id!';
@@ -309,6 +366,7 @@ class ScheduleController
 
     public function StaffAssignments()
     {
+        requireRole('ADMIN');
         $filters = [
             'staff_id' => $_GET['staff_id'] ?? null,
             'staff_type' => $_GET['staff_type'] ?? null,
@@ -321,5 +379,60 @@ class ScheduleController
         $stats = $this->modelSchedule->getStaffAssignmentStats($filters);
 
         require_once './views/schedule/staff_assignments.php';
+    }
+
+    // =============== HDV CHECK-IN ===============
+    public function GuideCheckIn()
+    {
+        requireLogin();
+        $schedule_id = $_POST['schedule_id'] ?? null;
+        if (!$schedule_id) {
+            $_SESSION['error'] = 'Thiếu schedule_id!';
+            header('Location: ?act=danh-sach-lich-khoi-hanh');
+            exit();
+        }
+        requireOwnScheduleOrAdmin($schedule_id, 'schedule.checkin');
+        if (isGuide()) {
+            $staff_id = $_SESSION['staff_id'] ?? null;
+            if ($staff_id) {
+                $ok = $this->modelSchedule->setStaffCheckIn($schedule_id, $staff_id);
+                if ($ok) {
+                    logUserActivity('guide_checkin', 'schedule', $schedule_id, 'HDV check-in');
+                    $_SESSION['success'] = 'Check-in thành công!';
+                } else {
+                    $_SESSION['warning'] = 'Không thể check-in (cần thêm cột check_in_time).';
+                }
+            }
+        }
+        header('Location: ?act=chi-tiet-lich-khoi-hanh&id=' . $schedule_id);
+        exit();
+    }
+
+    // =============== HDV LƯU NHẬT KÝ ===============
+    public function GuideSaveJourneyLog()
+    {
+        requireLogin();
+        $schedule_id = $_POST['schedule_id'] ?? null;
+        $log_text = trim($_POST['log_text'] ?? '');
+        if (!$schedule_id || $log_text === '') {
+            $_SESSION['error'] = 'Thiếu dữ liệu nhật ký.';
+            header('Location: ?act=chi-tiet-lich-khoi-hanh&id=' . $schedule_id);
+            exit();
+        }
+        requireOwnScheduleOrAdmin($schedule_id, 'schedule.log.update');
+        if (isGuide()) {
+            $staff_id = $_SESSION['staff_id'] ?? null;
+            if ($staff_id) {
+                $res = $this->modelSchedule->addJourneyLog($schedule_id, $staff_id, $log_text);
+                if ($res) {
+                    logUserActivity('guide_add_log', 'schedule', $schedule_id, 'Thêm nhật ký');
+                    $_SESSION['success'] = 'Đã lưu nhật ký.';
+                } else {
+                    $_SESSION['warning'] = 'Không thể lưu (cần tạo bảng schedule_journey_logs).';
+                }
+            }
+        }
+        header('Location: ?act=chi-tiet-lich-khoi-hanh&id=' . $schedule_id);
+        exit();
     }
 }

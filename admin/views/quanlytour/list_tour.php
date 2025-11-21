@@ -72,8 +72,7 @@
                                         default => 'badge-secondary'
                                     };
                                     ?>
-                                        <span
-                                            class="badge <?= $statusClass ?>"><?= htmlspecialchars($row['status'] ?? 'Draft') ?></span>
+                                        <span class="badge <?= $statusClass ?>"><?= htmlspecialchars($row['status'] ?? 'Draft') ?></span>
                                     </td>
                                     <td class="product-action">
                                         <a href="?act=chi-tiet-tour&id=<?= htmlspecialchars($row['tour_id'] ?? '') ?>"
@@ -88,6 +87,42 @@
                                                     class="feather icon-trash"></i></span></a>
                                     </td>
                                 </tr>
+                                    <tr id="detail-row-<?= $tourId ?>" class="collapse bg-light">
+                                        <td colspan="8" class="p-2">
+                                            <div class="row no-gutters">
+                                                <div class="col-md-3 col-sm-4 col-12 pr-2 mb-2">
+                                                    <?php if (!empty($row['tour_image'])): ?>
+                                                        <img src="<?= BASE_URL . htmlspecialchars($row['tour_image']) ?>" alt="Ảnh tour" class="img-fluid rounded shadow-sm w-100">
+                                                    <?php else: ?>
+                                                        <div class="text-muted small">Chưa có ảnh đại diện</div>
+                                                    <?php endif; ?>
+                                                    <div class="mt-1 small">
+                                                        <strong>Ảnh:</strong> <?= (int)($row['image_count'] ?? 0) ?>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-9 col-sm-8 col-12 pl-2">
+                                                    <div class="row">
+                                                        <div class="col-md-6 col-12 small">
+                                                            <div class="mb-1"><strong>Giá chuẩn:</strong> <?= isset($row['tour_price']) ? number_format($row['tour_price']) . ' đ' : 'Chưa có'; ?></div>
+                                                            <div class="mb-1"><strong>Điểm xuất phát:</strong> <?= htmlspecialchars($row['start_location'] ?? 'Đang cập nhật') ?></div>
+                                                            <div class="mb-1"><strong>Lịch khởi hành:</strong> <?= (int)($row['schedule_count'] ?? 0) ?> lịch</div>
+                                                            <div class="mb-1"><strong>Lịch trình ngày:</strong> <?= (int)($row['itinerary_count'] ?? 0) ?> mục</div>
+                                                        </div>
+                                                        <div class="col-md-6 col-12 small">
+                                                            <div class="mb-1"><strong>Tags:</strong> <?= !empty($row['tag_list']) ? htmlspecialchars($row['tag_list']) : '<span class="text-muted">Chưa có</span>' ?></div>
+                                                            <div class="mb-1"><strong>Chính sách:</strong> <?= (isset($row['has_policies']) && $row['has_policies'] > 0) ? '<span class="text-success">Đã thiết lập</span>' : '<span class="text-muted">Chưa có</span>' ?></div>
+                                                            <div class="mb-1"><strong>Trạng thái:</strong> <span class="badge <?= $statusClass ?>"><?= htmlspecialchars($row['status'] ?? 'Draft') ?></span></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <a href="?act=chi-tiet-tour&id=<?= $tourId ?>" class="btn btn-sm btn-primary">Quản lý chi tiết đầy đủ</a>
+                                                        <a href="?act=them-lich-khoi-hanh&tour_id=<?= $tourId ?>" class="btn btn-sm btn-outline-success">Thêm lịch khởi hành</a>
+                                                        <a href="?act=edit-list&id=<?= $tourId ?>" class="btn btn-sm btn-outline-warning">Sửa thông tin</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>

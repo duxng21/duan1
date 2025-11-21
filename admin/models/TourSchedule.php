@@ -301,6 +301,45 @@ class TourSchedule
         return $stmt->fetchAll();
     }
 
+    // ==================== CHECK-IN & NHẬT KÝ (HDV) ====================
+
+    public function setStaffCheckIn($schedule_id, $staff_id)
+    {
+        // cố gắng cập nhật cột check_in_time nếu tồn tại, nếu không bỏ qua
+        try {
+            $sql = "UPDATE schedule_staff SET check_in_time = NOW() WHERE schedule_id = ? AND staff_id = ?";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([$schedule_id, $staff_id]);
+            return $stmt->rowCount() > 0;
+        } catch (Exception $e) {
+            return false; // bảng chưa có cột hoặc lỗi, bỏ qua
+        }
+    }
+
+    public function addJourneyLog($schedule_id, $staff_id, $log_text)
+    {
+        try {
+            $sql = "INSERT INTO schedule_journey_logs (schedule_id, staff_id, log_text, created_at) VALUES (?,?,?,NOW())";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([$schedule_id, $staff_id, $log_text]);
+            return $this->conn->lastInsertId();
+        } catch (Exception $e) {
+            return false; // nếu bảng chưa tồn tại
+        }
+    }
+
+    public function getJourneyLogs($schedule_id)
+    {
+        try {
+            $sql = "SELECT jl.*, s.full_name FROM schedule_journey_logs jl JOIN staff s ON jl.staff_id = s.staff_id WHERE jl.schedule_id = ? ORDER BY jl.created_at DESC";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([$schedule_id]);
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            return []; // bảng chưa tồn tại
+        }
+    }
+
     public function assignService($schedule_id, $service_id, $quantity, $unit_price, $notes)
     {
         $sql = "INSERT INTO schedule_services (schedule_id, service_id, quantity, unit_price, notes) 

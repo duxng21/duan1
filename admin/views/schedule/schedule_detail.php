@@ -22,9 +22,11 @@
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title">Thông tin lịch khởi hành</h4>
-                    <a href="?act=sua-lich-khoi-hanh&id=<?= $schedule['schedule_id'] ?>" class="btn btn-warning btn-sm">
-                        <i class="feather icon-edit"></i> Sửa thông tin
-                    </a>
+                    <?php if (isAdmin()): ?>
+                        <a href="?act=sua-lich-khoi-hanh&id=<?= $schedule['schedule_id'] ?>" class="btn btn-warning btn-sm">
+                            <i class="feather icon-edit"></i> Sửa thông tin
+                        </a>
+                    <?php endif; ?>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -116,10 +118,12 @@
                     <div class="card">
                         <div class="card-header">
                             <h4 class="card-title">Phân công nhân sự</h4>
-                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                                data-target="#addStaffModal">
-                                <i class="feather icon-user-plus"></i> Phân công nhân sự
-                            </button>
+                            <?php if (isAdmin()): ?>
+                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                                    data-target="#addStaffModal">
+                                    <i class="feather icon-user-plus"></i> Phân công nhân sự
+                                </button>
+                            <?php endif; ?>
                         </div>
                         <div class="card-body">
                             <?php if (!empty($staff)): ?>
@@ -155,10 +159,16 @@
                                                     <td><?= htmlspecialchars($s['phone'] ?? '') ?></td>
                                                     <td><?= htmlspecialchars($s['languages'] ?? '') ?></td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-danger"
-                                                            onclick="if(confirm('Xóa nhân sự khỏi lịch?')) location.href='?act=xoa-nhan-su-khoi-lich&schedule_id=<?= $schedule['schedule_id'] ?>&staff_id=<?= $s['staff_id'] ?>'">
-                                                            <i class="feather icon-x"></i>
-                                                        </button>
+                                                        <?php if (isAdmin()): ?>
+                                                            <button class="btn btn-sm btn-danger"
+                                                                onclick="if(confirm('Xóa nhân sự khỏi lịch?')) location.href='?act=xoa-nhan-su-khoi-lich&schedule_id=<?= $schedule['schedule_id'] ?>&staff_id=<?= $s['staff_id'] ?>'">
+                                                                <i class="feather icon-x"></i>
+                                                            </button>
+                                                        <?php endif; ?>
+                                                        <?php if (isGuide() && isset($_SESSION['staff_id']) && $_SESSION['staff_id'] == $s['staff_id'] && !empty($s['check_in_time'])): ?>
+                                                            <span class="badge badge-success mt-1">Đã check-in:
+                                                                <?= date('d/m H:i', strtotime($s['check_in_time'])) ?></span>
+                                                        <?php endif; ?>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -177,10 +187,12 @@
                     <div class="card">
                         <div class="card-header">
                             <h4 class="card-title">Dịch vụ được phân bổ</h4>
-                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                                data-target="#addServiceModal">
-                                <i class="feather icon-plus"></i> Thêm dịch vụ
-                            </button>
+                            <?php if (isAdmin()): ?>
+                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                                    data-target="#addServiceModal">
+                                    <i class="feather icon-plus"></i> Thêm dịch vụ
+                                </button>
+                            <?php endif; ?>
                         </div>
                         <div class="card-body">
                             <?php if (!empty($services)): ?>
@@ -226,10 +238,12 @@
                                                             đ</strong></td>
                                                     <td><?= htmlspecialchars($serv['notes'] ?? '-') ?></td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-danger"
-                                                            onclick="if(confirm('Xóa dịch vụ khỏi lịch?')) location.href='?act=xoa-dich-vu-khoi-lich&schedule_id=<?= $schedule['schedule_id'] ?>&service_id=<?= $serv['service_id'] ?>'">
-                                                            <i class="feather icon-x"></i>
-                                                        </button>
+                                                        <?php if (isAdmin()): ?>
+                                                            <button class="btn btn-sm btn-danger"
+                                                                onclick="if(confirm('Xóa dịch vụ khỏi lịch?')) location.href='?act=xoa-dich-vu-khoi-lich&schedule_id=<?= $schedule['schedule_id'] ?>&service_id=<?= $serv['service_id'] ?>'">
+                                                                <i class="feather icon-x"></i>
+                                                            </button>
+                                                        <?php endif; ?>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -254,13 +268,81 @@
                 <a href="?act=danh-sach-lich-khoi-hanh" class="btn btn-secondary">
                     <i class="feather icon-arrow-left"></i> Quay lại
                 </a>
-                <a href="?act=xuat-bao-cao-lich&id=<?= $schedule['schedule_id'] ?>" class="btn btn-success">
-                    <i class="feather icon-printer"></i> Xuất báo cáo
-                </a>
+                <?php if (isAdmin()): ?>
+                    <a href="?act=xuat-bao-cao-lich&id=<?= $schedule['schedule_id'] ?>" class="btn btn-success">
+                        <i class="feather icon-printer"></i> Xuất báo cáo
+                    </a>
+                <?php endif; ?>
+                <?php if (isGuide()): ?>
+                    <!-- HDV Check-in -->
+                    <form action="?act=hdv-checkin" method="POST" style="display:inline-block;">
+                        <input type="hidden" name="schedule_id" value="<?= $schedule['schedule_id'] ?>">
+                        <button type="submit" class="btn btn-info">
+                            <i class="feather icon-map-pin"></i> Check-in
+                        </button>
+                    </form>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 </div>
+
+<?php if (isGuide()): ?>
+    <!-- Nhật ký hành trình cho HDV -->
+    <div class="app-content content">
+        <div class="content-wrapper">
+            <div class="content-body">
+                <div class="card mt-2">
+                    <div class="card-header">
+                        <h4 class="card-title">Nhật ký hành trình</h4>
+                    </div>
+                    <div class="card-body">
+                        <form action="?act=hdv-luu-nhat-ky" method="POST">
+                            <input type="hidden" name="schedule_id" value="<?= $schedule['schedule_id'] ?>">
+                            <div class="form-group">
+                                <label for="log_text">Ghi chép mới</label>
+                                <textarea name="log_text" id="log_text" rows="3" class="form-control"
+                                    placeholder="Ví dụ: Đã đón đoàn tại điểm tập trung, thời tiết tốt..."></textarea>
+                            </div>
+                            <button class="btn btn-primary" type="submit"><i class="feather icon-save"></i> Lưu nhật
+                                ký</button>
+                        </form>
+                        <hr>
+                        <h5>Nhật ký gần đây</h5>
+                        <?php if (!empty($journeyLogs)): ?>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Thời gian</th>
+                                            <th>HDV</th>
+                                            <th>Nội dung</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($journeyLogs as $log): ?>
+                                            <tr>
+                                                <td style="width:140px;">
+                                                    <?= date('d/m/Y H:i', strtotime($log['created_at'])) ?>
+                                                </td>
+                                                <td style="width:160px;">
+                                                    <?= htmlspecialchars($log['full_name'] ?? 'HDV') ?>
+                                                </td>
+                                                <td><?= nl2br(htmlspecialchars($log['log_text'])) ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <p class="text-muted mb-0">Chưa có nhật ký nào.</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
 
 <!-- Modal Phân công Nhân sự -->
 <div class="modal fade" id="addStaffModal" tabindex="-1" role="dialog">

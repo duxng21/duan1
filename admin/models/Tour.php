@@ -12,8 +12,18 @@ class Tour
         $sql = "SELECT 
                     t.*,
                     tc.category_name,
-                    tm.file_path as tour_image,
-                    tp.price_adult as tour_price
+                    tm.file_path AS tour_image,
+                    tp.price_adult AS tour_price,
+                    -- Tổng số lịch trình (itinerary)
+                    (SELECT COUNT(*) FROM tour_itineraries iti WHERE iti.tour_id = t.tour_id) AS itinerary_count,
+                    -- Tổng số ảnh
+                    (SELECT COUNT(*) FROM tour_media m WHERE m.tour_id = t.tour_id) AS image_count,
+                    -- Tổng số lịch khởi hành (schedules)
+                    (SELECT COUNT(*) FROM tour_schedules ts WHERE ts.tour_id = t.tour_id AND ts.status != 'Cancelled') AS schedule_count,
+                    -- Danh sách tags (group concat)
+                    (SELECT GROUP_CONCAT(tt.tag_name SEPARATOR ', ') FROM tour_tag_relations r JOIN tour_tags tt ON r.tag_id = tt.tag_id WHERE r.tour_id = t.tour_id) AS tag_list,
+                    -- Đã có chính sách chưa
+                    (SELECT COUNT(*) FROM tour_policies p WHERE p.tour_id = t.tour_id) AS has_policies
                 FROM tours t
                 LEFT JOIN tour_categories tc ON t.category_id = tc.category_id
                 LEFT JOIN tour_media tm ON t.tour_id = tm.tour_id AND tm.is_featured = 1
@@ -29,8 +39,13 @@ class Tour
         $sql = "SELECT 
                     t.*,
                     tc.category_name,
-                    tm.file_path as tour_image,
-                    tp.price_adult as tour_price
+                    tm.file_path AS tour_image,
+                    tp.price_adult AS tour_price,
+                    (SELECT COUNT(*) FROM tour_itineraries iti WHERE iti.tour_id = t.tour_id) AS itinerary_count,
+                    (SELECT COUNT(*) FROM tour_media m WHERE m.tour_id = t.tour_id) AS image_count,
+                    (SELECT COUNT(*) FROM tour_schedules ts WHERE ts.tour_id = t.tour_id AND ts.status != 'Cancelled') AS schedule_count,
+                    (SELECT GROUP_CONCAT(tt.tag_name SEPARATOR ', ') FROM tour_tag_relations r JOIN tour_tags tt ON r.tag_id = tt.tag_id WHERE r.tour_id = t.tour_id) AS tag_list,
+                    (SELECT COUNT(*) FROM tour_policies p WHERE p.tour_id = t.tour_id) AS has_policies
                 FROM tours t
                 LEFT JOIN tour_categories tc ON t.category_id = tc.category_id
                 LEFT JOIN tour_media tm ON t.tour_id = tm.tour_id AND tm.is_featured = 1
@@ -47,8 +62,13 @@ class Tour
         $sql = "SELECT 
                     t.*,
                     tc.category_name,
-                    tm.file_path as tour_image,
-                    tp.price_adult as tour_price
+                    tm.file_path AS tour_image,
+                    tp.price_adult AS tour_price,
+                    (SELECT COUNT(*) FROM tour_itineraries iti WHERE iti.tour_id = t.tour_id) AS itinerary_count,
+                    (SELECT COUNT(*) FROM tour_media m WHERE m.tour_id = t.tour_id) AS image_count,
+                    (SELECT COUNT(*) FROM tour_schedules ts WHERE ts.tour_id = t.tour_id AND ts.status != 'Cancelled') AS schedule_count,
+                    (SELECT GROUP_CONCAT(tt.tag_name SEPARATOR ', ') FROM tour_tag_relations r JOIN tour_tags tt ON r.tag_id = tt.tag_id WHERE r.tour_id = t.tour_id) AS tag_list,
+                    (SELECT COUNT(*) FROM tour_policies p WHERE p.tour_id = t.tour_id) AS has_policies
                 FROM tours t
                 LEFT JOIN tour_categories tc ON t.category_id = tc.category_id
                 LEFT JOIN tour_media tm ON t.tour_id = tm.tour_id AND tm.is_featured = 1
