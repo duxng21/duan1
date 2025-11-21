@@ -95,18 +95,18 @@ class BookingController
             }
 
             $data = [
-                'tour_id' => $_POST['tour_id'],
-                'tour_date' => $_POST['tour_date'] ?? null,
-                'customer_id' => $_POST['customer_id'] ?? null,
+                'tour_id' => !empty($_POST['tour_id']) ? intval($_POST['tour_id']) : null,
+                'tour_date' => !empty($_POST['tour_date']) ? $_POST['tour_date'] : null,
+                'customer_id' => !empty($_POST['customer_id']) ? intval($_POST['customer_id']) : null,
                 'booking_type' => $bookingType,
-                'organization_name' => $_POST['organization_name'] ?? null,
-                'contact_name' => $_POST['contact_name'] ?? null,
-                'contact_phone' => $_POST['contact_phone'] ?? null,
-                'contact_email' => $_POST['contact_email'] ?? null,
+                'organization_name' => !empty($_POST['organization_name']) ? $_POST['organization_name'] : null,
+                'contact_name' => !empty($_POST['contact_name']) ? $_POST['contact_name'] : null,
+                'contact_phone' => !empty($_POST['contact_phone']) ? $_POST['contact_phone'] : null,
+                'contact_email' => !empty($_POST['contact_email']) ? $_POST['contact_email'] : null,
                 'num_adults' => intval($_POST['num_adults']),
                 'num_children' => intval($_POST['num_children'] ?? 0),
                 'num_infants' => intval($_POST['num_infants'] ?? 0),
-                'special_requests' => $_POST['special_requests'] ?? null,
+                'special_requests' => !empty($_POST['special_requests']) ? $_POST['special_requests'] : null,
                 'total_amount' => floatval($_POST['total_amount']),
                 'status' => $_POST['status'] ?? 'Chờ xác nhận'
             ];
@@ -194,11 +194,18 @@ class BookingController
 
         try {
             $data = [
-                'tour_id' => $_POST['tour_id'],
-                'customer_id' => $_POST['customer_id'],
+                'tour_id' => !empty($_POST['tour_id']) ? intval($_POST['tour_id']) : null,
+                'tour_date' => !empty($_POST['tour_date']) ? $_POST['tour_date'] : null,
+                'customer_id' => !empty($_POST['customer_id']) ? intval($_POST['customer_id']) : null,
+                'booking_type' => !empty($_POST['booking_type']) ? $_POST['booking_type'] : 'Cá nhân',
+                'organization_name' => !empty($_POST['organization_name']) ? $_POST['organization_name'] : null,
+                'contact_name' => !empty($_POST['contact_name']) ? $_POST['contact_name'] : null,
+                'contact_phone' => !empty($_POST['contact_phone']) ? $_POST['contact_phone'] : null,
+                'contact_email' => !empty($_POST['contact_email']) ? $_POST['contact_email'] : null,
                 'num_adults' => intval($_POST['num_adults']),
                 'num_children' => intval($_POST['num_children'] ?? 0),
                 'num_infants' => intval($_POST['num_infants'] ?? 0),
+                'special_requests' => !empty($_POST['special_requests']) ? $_POST['special_requests'] : null,
                 'total_amount' => floatval($_POST['total_amount']),
                 'status' => $_POST['status']
             ];
@@ -219,10 +226,19 @@ class BookingController
 
     public function UpdateStatus()
     {
-        $id = $_POST['booking_id'] ?? 0;
-        $status = $_POST['status'] ?? '';
+        // Hỗ trợ cả GET và POST
+        $id = $_POST['booking_id'] ?? $_GET['id'] ?? 0;
+        $status = $_POST['status'] ?? $_GET['status'] ?? '';
 
         try {
+            if (empty($id)) {
+                throw new Exception('Thiếu thông tin booking!');
+            }
+
+            if (empty($status)) {
+                throw new Exception('Thiếu thông tin trạng thái!');
+            }
+
             $this->bookingModel->updateStatus($id, $status);
             $_SESSION['success'] = 'Cập nhật trạng thái thành công!';
         } catch (Exception $e) {

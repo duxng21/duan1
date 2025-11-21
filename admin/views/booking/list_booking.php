@@ -132,9 +132,19 @@
                                                         <tr>
                                                             <td><strong>#<?= $booking['booking_id'] ?></strong></td>
                                                             <td>
-                                                                <?= htmlspecialchars($booking['customer_name'] ?? 'N/A') ?><br>
-                                                                <small
-                                                                    class="text-muted"><?= htmlspecialchars($booking['customer_phone'] ?? '') ?></small>
+                                                                <?php if ($booking['booking_type'] == 'Đoàn'): ?>
+                                                                    <i class="feather icon-briefcase text-primary"></i>
+                                                                    <strong><?= htmlspecialchars($booking['organization_name'] ?? 'N/A') ?></strong><br>
+                                                                    <small class="text-muted">
+                                                                        <?= htmlspecialchars($booking['contact_name'] ?? '') ?>
+                                                                        <?= !empty($booking['contact_phone']) ? ' - ' . htmlspecialchars($booking['contact_phone']) : '' ?>
+                                                                    </small>
+                                                                <?php else: ?>
+                                                                    <i class="feather icon-user"></i>
+                                                                    <?= htmlspecialchars($booking['customer_name'] ?? 'N/A') ?><br>
+                                                                    <small
+                                                                        class="text-muted"><?= htmlspecialchars($booking['customer_phone'] ?? '') ?></small>
+                                                                <?php endif; ?>
                                                             </td>
                                                             <td><?= htmlspecialchars($booking['tour_name']) ?></td>
                                                             <td><?= date('d/m/Y H:i', strtotime($booking['booking_date'])) ?>

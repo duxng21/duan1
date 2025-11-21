@@ -16,6 +16,7 @@ require_once '../commons/function.php'; // Hàm hỗ trợ
 require_once './controllers/TourController.php';
 require_once './controllers/ScheduleController.php';
 require_once './controllers/StaffController.php';
+require_once './controllers/StaffExtendedController.php';
 require_once './controllers/AuthController.php';
 require_once './controllers/BookingController.php';
 
@@ -69,6 +70,7 @@ match ($act) {
     'xoa-dich-vu-khoi-lich' => (new ScheduleController())->RemoveService(),
     'xem-lich-theo-thang' => (new ScheduleController())->CalendarView(),
     'xuat-bao-cao-lich' => (new ScheduleController())->ExportSchedule(),
+    'tong-quan-phan-cong' => (new ScheduleController())->StaffAssignments(),
 
     // Quản lý nhân sự
     'danh-sach-nhan-su' => (new StaffController())->ListStaff(),
@@ -78,6 +80,31 @@ match ($act) {
     'sua-nhan-su' => (new StaffController())->EditStaff(),
     'cap-nhat-nhan-su' => (new StaffController())->UpdateStaff(),
     'xoa-nhan-su' => (new StaffController())->DeleteStaff(),
+
+    // Quản lý chứng chỉ nhân sự
+    'quan-ly-chung-chi' => (new StaffExtendedController())->ManageCertificates(),
+    'them-chung-chi' => (new StaffExtendedController())->AddCertificate(),
+    'xoa-chung-chi' => (new StaffExtendedController())->DeleteCertificate(),
+
+    // Quản lý ngôn ngữ nhân sự
+    'quan-ly-ngon-ngu' => (new StaffExtendedController())->ManageLanguages(),
+    'them-ngon-ngu' => (new StaffExtendedController())->AddLanguage(),
+    'xoa-ngon-ngu' => (new StaffExtendedController())->DeleteLanguage(),
+
+    // Quản lý lịch nghỉ
+    'quan-ly-lich-nghi' => (new StaffExtendedController())->ManageTimeOff(),
+    'them-lich-nghi' => (new StaffExtendedController())->AddTimeOff(),
+    'duyet-lich-nghi' => (new StaffExtendedController())->ApproveTimeOff(),
+    'tu-choi-lich-nghi' => (new StaffExtendedController())->RejectTimeOff(),
+
+    // Lịch sử tour & đánh giá
+    'lich-su-tour' => (new StaffExtendedController())->TourHistory(),
+    'cap-nhat-lich-su-tour' => (new StaffExtendedController())->UpdateTourHistory(),
+    'quan-ly-danh-gia' => (new StaffExtendedController())->ManageEvaluations(),
+    'them-danh-gia' => (new StaffExtendedController())->AddEvaluation(),
+
+    // Dashboard hiệu suất
+    'dashboard-hieu-suat' => (new StaffExtendedController())->PerformanceDashboard(),
 
     // Quản lý Booking
     'danh-sach-booking' => (new BookingController())->ListBooking(),

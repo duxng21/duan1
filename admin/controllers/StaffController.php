@@ -51,16 +51,44 @@ class StaffController
 
                 $data = [
                     'full_name' => $_POST['full_name'],
-                    'staff_type' => $_POST['staff_type'],
+                    'date_of_birth' => !empty($_POST['date_of_birth']) ? $_POST['date_of_birth'] : null,
+                    'gender' => $_POST['gender'] ?? 'Nam',
+                    'address' => $_POST['address'] ?? null,
+                    'avatar' => null, // Xử lý upload ảnh bên dưới
                     'phone' => $_POST['phone'] ?? null,
                     'email' => $_POST['email'] ?? null,
                     'id_card' => $_POST['id_card'] ?? null,
                     'license_number' => $_POST['license_number'] ?? null,
                     'experience_years' => $_POST['experience_years'] ?? 0,
                     'languages' => $_POST['languages'] ?? null,
+                    'staff_type' => $_POST['staff_type'],
+                    'staff_category' => $_POST['staff_category'] ?? 'Nội địa',
+                    'specialization' => $_POST['specialization'] ?? null,
+                    'group_specialty' => $_POST['group_specialty'] ?? 'Cả hai',
+                    'health_status' => $_POST['health_status'] ?? 'Tốt',
+                    'health_notes' => $_POST['health_notes'] ?? null,
+                    'emergency_contact' => $_POST['emergency_contact'] ?? null,
+                    'emergency_phone' => $_POST['emergency_phone'] ?? null,
+                    'bank_account' => $_POST['bank_account'] ?? null,
+                    'bank_name' => $_POST['bank_name'] ?? null,
                     'status' => isset($_POST['status']) ? 1 : 0,
                     'notes' => $_POST['notes'] ?? null
                 ];
+
+                // Upload ảnh đại diện nếu có
+                if (!empty($_FILES['avatar']['name'])) {
+                    $uploadDir = '../uploads/avatars/';
+                    if (!file_exists($uploadDir)) {
+                        mkdir($uploadDir, 0777, true);
+                    }
+
+                    $fileName = time() . '_' . basename($_FILES['avatar']['name']);
+                    $uploadFile = $uploadDir . $fileName;
+
+                    if (move_uploaded_file($_FILES['avatar']['tmp_name'], $uploadFile)) {
+                        $data['avatar'] = 'uploads/avatars/' . $fileName;
+                    }
+                }
 
                 $result = $this->modelStaff->create($data);
 
@@ -114,16 +142,44 @@ class StaffController
 
                 $data = [
                     'full_name' => $_POST['full_name'],
-                    'staff_type' => $_POST['staff_type'],
+                    'date_of_birth' => !empty($_POST['date_of_birth']) ? $_POST['date_of_birth'] : null,
+                    'gender' => $_POST['gender'] ?? 'Nam',
+                    'address' => $_POST['address'] ?? null,
+                    'avatar' => $_POST['current_avatar'] ?? null, // Giữ ảnh cũ
                     'phone' => $_POST['phone'] ?? null,
                     'email' => $_POST['email'] ?? null,
                     'id_card' => $_POST['id_card'] ?? null,
                     'license_number' => $_POST['license_number'] ?? null,
                     'experience_years' => $_POST['experience_years'] ?? 0,
                     'languages' => $_POST['languages'] ?? null,
+                    'staff_type' => $_POST['staff_type'],
+                    'staff_category' => $_POST['staff_category'] ?? 'Nội địa',
+                    'specialization' => $_POST['specialization'] ?? null,
+                    'group_specialty' => $_POST['group_specialty'] ?? 'Cả hai',
+                    'health_status' => $_POST['health_status'] ?? 'Tốt',
+                    'health_notes' => $_POST['health_notes'] ?? null,
+                    'emergency_contact' => $_POST['emergency_contact'] ?? null,
+                    'emergency_phone' => $_POST['emergency_phone'] ?? null,
+                    'bank_account' => $_POST['bank_account'] ?? null,
+                    'bank_name' => $_POST['bank_name'] ?? null,
                     'status' => isset($_POST['status']) ? 1 : 0,
                     'notes' => $_POST['notes'] ?? null
                 ];
+
+                // Upload ảnh đại diện mới nếu có
+                if (!empty($_FILES['avatar']['name'])) {
+                    $uploadDir = '../uploads/avatars/';
+                    if (!file_exists($uploadDir)) {
+                        mkdir($uploadDir, 0777, true);
+                    }
+
+                    $fileName = time() . '_' . basename($_FILES['avatar']['name']);
+                    $uploadFile = $uploadDir . $fileName;
+
+                    if (move_uploaded_file($_FILES['avatar']['tmp_name'], $uploadFile)) {
+                        $data['avatar'] = 'uploads/avatars/' . $fileName;
+                    }
+                }
 
                 $result = $this->modelStaff->update($id, $data);
 

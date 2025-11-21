@@ -138,16 +138,16 @@ class ScheduleController
                 }
 
                 $data = [
-                    'tour_id' => $_POST['tour_id'],
+                    'tour_id' => !empty($_POST['tour_id']) ? $_POST['tour_id'] : null,
                     'departure_date' => $_POST['departure_date'],
-                    'return_date' => $_POST['return_date'],
-                    'meeting_point' => $_POST['meeting_point'] ?? '',
-                    'meeting_time' => $_POST['meeting_time'] ?? '',
-                    'max_participants' => $_POST['max_participants'] ?? 0,
-                    'price_adult' => $_POST['price_adult'] ?? 0,
-                    'price_child' => $_POST['price_child'] ?? 0,
-                    'status' => $_POST['status'] ?? 'Open',
-                    'notes' => $_POST['notes'] ?? ''
+                    'return_date' => !empty($_POST['return_date']) ? $_POST['return_date'] : null,
+                    'meeting_point' => !empty($_POST['meeting_point']) ? $_POST['meeting_point'] : null,
+                    'meeting_time' => !empty($_POST['meeting_time']) ? $_POST['meeting_time'] : null,
+                    'max_participants' => !empty($_POST['max_participants']) ? (int) $_POST['max_participants'] : 0,
+                    'price_adult' => !empty($_POST['price_adult']) ? (float) $_POST['price_adult'] : 0,
+                    'price_child' => !empty($_POST['price_child']) ? (float) $_POST['price_child'] : 0,
+                    'status' => !empty($_POST['status']) ? $_POST['status'] : 'Open',
+                    'notes' => !empty($_POST['notes']) ? $_POST['notes'] : null
                 ];
 
                 $this->modelSchedule->updateSchedule($schedule_id, $data);
@@ -303,5 +303,23 @@ class ScheduleController
 
         $report = $this->modelSchedule->getScheduleReport($schedule_id);
         require_once './views/schedule/export_schedule.php';
+    }
+
+    // ==================== TỔNG QUAN PHÂN CÔNG NHÂN SỰ ====================
+
+    public function StaffAssignments()
+    {
+        $filters = [
+            'staff_id' => $_GET['staff_id'] ?? null,
+            'staff_type' => $_GET['staff_type'] ?? null,
+            'from_date' => $_GET['from_date'] ?? date('Y-m-01'),
+            'to_date' => $_GET['to_date'] ?? date('Y-m-t')
+        ];
+
+        $assignments = $this->modelSchedule->getAllStaffAssignments($filters);
+        $allStaff = $this->modelSchedule->getAllStaff();
+        $stats = $this->modelSchedule->getStaffAssignmentStats($filters);
+
+        require_once './views/schedule/staff_assignments.php';
     }
 }

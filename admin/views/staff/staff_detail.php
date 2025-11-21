@@ -118,7 +118,14 @@
                     <div class="col-md-8">
                         <div class="card">
                             <div class="card-header">
-                                <h4 class="card-title">Lịch làm việc</h4>
+                                <h4 class="card-title">
+                                    <i class="feather icon-calendar"></i> Lịch làm việc
+                                </h4>
+                                <div class="heading-elements">
+                                    <span class="badge badge-primary">
+                                        <?= count($schedules) ?> lịch
+                                    </span>
+                                </div>
                             </div>
                             <div class="card-content">
                                 <div class="card-body">
@@ -127,12 +134,12 @@
                                         <input type="hidden" name="act" value="chi-tiet-nhan-su">
                                         <input type="hidden" name="id" value="<?= $staff['staff_id'] ?>">
                                         <div class="row">
-                                            <div class="col-md-5">
+                                            <div class="col-md-4">
                                                 <label>Từ ngày:</label>
                                                 <input type="date" class="form-control" name="from_date"
                                                     value="<?= $from_date ?>">
                                             </div>
-                                            <div class="col-md-5">
+                                            <div class="col-md-4">
                                                 <label>Đến ngày:</label>
                                                 <input type="date" class="form-control" name="to_date"
                                                     value="<?= $to_date ?>">
@@ -140,8 +147,30 @@
                                             <div class="col-md-2">
                                                 <label>&nbsp;</label>
                                                 <button type="submit" class="btn btn-primary btn-block">
-                                                    <i class="feather icon-search"></i>
+                                                    <i class="feather icon-search"></i> Lọc
                                                 </button>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label>&nbsp;</label>
+                                                <a href="?act=chi-tiet-nhan-su&id=<?= $staff['staff_id'] ?>"
+                                                    class="btn btn-secondary btn-block">
+                                                    <i class="feather icon-refresh-cw"></i> Reset
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                        <!-- Quick filters -->
+                                        <div class="row mt-2">
+                                            <div class="col-12">
+                                                <small class="text-muted">Lọc nhanh:</small>
+                                                <div class="btn-group btn-group-sm ml-2">
+                                                    <a href="?act=chi-tiet-nhan-su&id=<?= $staff['staff_id'] ?>&from_date=<?= date('Y-m-01') ?>&to_date=<?= date('Y-m-t') ?>"
+                                                        class="btn btn-outline-primary">Tháng này</a>
+                                                    <a href="?act=chi-tiet-nhan-su&id=<?= $staff['staff_id'] ?>&from_date=<?= date('Y-01-01') ?>&to_date=<?= date('Y-12-31') ?>"
+                                                        class="btn btn-outline-primary">Năm nay</a>
+                                                    <a href="?act=chi-tiet-nhan-su&id=<?= $staff['staff_id'] ?>&from_date=<?= date('Y-m-d') ?>&to_date=<?= date('Y-m-d', strtotime('+30 days')) ?>"
+                                                        class="btn btn-outline-primary">30 ngày tới</a>
+                                                </div>
                                             </div>
                                         </div>
                                     </form>
@@ -150,7 +179,7 @@
                                         <table class="table table-striped table-bordered">
                                             <thead>
                                                 <tr>
-                                                    <th>Ngày khởi hành</th>
+                                                    <th>Thời gian</th>
                                                     <th>Tour</th>
                                                     <th>Vai trò</th>
                                                     <th>Trạng thái</th>
@@ -162,14 +191,40 @@
                                                     <?php foreach ($schedules as $schedule): ?>
                                                         <tr>
                                                             <td>
-                                                                <?= date('d/m/Y', strtotime($schedule['departure_date'])) ?>
+                                                                <strong><?= date('d/m/Y', strtotime($schedule['departure_date'])) ?></strong>
+                                                                <?php if ($schedule['return_date']): ?>
+                                                                    <br>
+                                                                    <small class="text-muted">
+                                                                        <i class="feather icon-arrow-right"></i>
+                                                                        <?= date('d/m/Y', strtotime($schedule['return_date'])) ?>
+                                                                    </small>
+                                                                <?php endif; ?>
                                                                 <br>
-                                                                <small class="text-muted">
-                                                                    <?= $schedule['return_date'] ? date('d/m/Y', strtotime($schedule['return_date'])) : '' ?>
-                                                                </small>
+                                                                <?php
+                                                                $days_until = (strtotime($schedule['departure_date']) - time()) / 86400;
+                                                                if ($days_until > 0 && $days_until <= 7): ?>
+                                                                    <span class="badge badge-warning badge-sm">
+                                                                        Còn <?= ceil($days_until) ?> ngày
+                                                                    </span>
+                                                                <?php elseif ($days_until < 0): ?>
+                                                                    <span class="badge badge-secondary badge-sm">Đã qua</span>
+                                                                <?php endif; ?>
                                                             </td>
-                                                            <td><?= htmlspecialchars($schedule['tour_name']) ?></td>
-                                                            <td><?= htmlspecialchars($schedule['role'] ?? '') ?></td>
+                                                            <td>
+                                                                <strong><?= htmlspecialchars($schedule['tour_name']) ?></strong>
+                                                                <?php if (!empty($schedule['meeting_point'])): ?>
+                                                                    <br>
+                                                                    <small class="text-muted">
+                                                                        <i class="feather icon-map-pin"></i>
+                                                                        <?= htmlspecialchars($schedule['meeting_point']) ?>
+                                                                    </small>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                            <td>
+                                                                <span class="badge badge-info">
+                                                                    <?= htmlspecialchars($schedule['role'] ?? 'Chưa xác định') ?>
+                                                                </span>
+                                                            </td>
                                                             <td>
                                                                 <?php
                                                                 $statusClass = match ($schedule['status']) {
@@ -180,13 +235,21 @@
                                                                     'Cancelled' => 'badge-danger',
                                                                     default => 'badge-light'
                                                                 };
+                                                                $statusText = match ($schedule['status']) {
+                                                                    'Open' => 'Mở đặt',
+                                                                    'Full' => 'Đã đầy',
+                                                                    'Confirmed' => 'Đã xác nhận',
+                                                                    'Completed' => 'Hoàn thành',
+                                                                    'Cancelled' => 'Đã hủy',
+                                                                    default => $schedule['status']
+                                                                };
                                                                 ?>
                                                                 <span
-                                                                    class="badge <?= $statusClass ?>"><?= $schedule['status'] ?></span>
+                                                                    class="badge <?= $statusClass ?>"><?= $statusText ?></span>
                                                             </td>
                                                             <td>
                                                                 <a href="?act=chi-tiet-lich-khoi-hanh&id=<?= $schedule['schedule_id'] ?>"
-                                                                    class="btn btn-info btn-sm">
+                                                                    class="btn btn-info btn-sm" title="Chi tiết">
                                                                     <i class="feather icon-eye"></i>
                                                                 </a>
                                                             </td>
@@ -194,8 +257,14 @@
                                                     <?php endforeach; ?>
                                                 <?php else: ?>
                                                     <tr>
-                                                        <td colspan="5" class="text-center text-muted">
-                                                            Không có lịch làm việc trong khoảng thời gian này
+                                                        <td colspan="5" class="text-center">
+                                                            <div class="py-3">
+                                                                <i
+                                                                    class="feather icon-calendar font-large-2 text-muted"></i>
+                                                                <p class="text-muted mt-2">
+                                                                    Không có lịch làm việc trong khoảng thời gian này
+                                                                </p>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 <?php endif; ?>
@@ -204,8 +273,37 @@
                                     </div>
 
                                     <?php if (!empty($schedules)): ?>
-                                        <div class="alert alert-info mt-3">
-                                            <strong>Tổng số lịch:</strong> <?= count($schedules) ?> lịch khởi hành
+                                        <?php
+                                        // Thống kê
+                                        $upcoming = array_filter($schedules, fn($s) => strtotime($s['departure_date']) >= time());
+                                        $completed = array_filter($schedules, fn($s) => $s['status'] == 'Completed');
+                                        $cancelled = array_filter($schedules, fn($s) => $s['status'] == 'Cancelled');
+                                        ?>
+                                        <div class="row mt-3">
+                                            <div class="col-md-3">
+                                                <div class="alert alert-primary mb-0">
+                                                    <strong><?= count($schedules) ?></strong>
+                                                    <p class="mb-0 small">Tổng lịch</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="alert alert-success mb-0">
+                                                    <strong><?= count($upcoming) ?></strong>
+                                                    <p class="mb-0 small">Sắp tới</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="alert alert-secondary mb-0">
+                                                    <strong><?= count($completed) ?></strong>
+                                                    <p class="mb-0 small">Đã hoàn thành</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="alert alert-danger mb-0">
+                                                    <strong><?= count($cancelled) ?></strong>
+                                                    <p class="mb-0 small">Đã hủy</p>
+                                                </div>
+                                            </div>
                                         </div>
                                     <?php endif; ?>
                                 </div>
