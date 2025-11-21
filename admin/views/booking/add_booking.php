@@ -292,7 +292,14 @@
         document.getElementById('group-section').style.display = isGroup ? 'block' : 'none';
 
         // Toggle required
-        document.getElementById('customer_id').required = !isGroup;
+        const customerSelect = document.getElementById('customer_id');
+        customerSelect.required = !isGroup;
+
+        // Xóa giá trị customer_id khi chọn Đoàn để tránh gửi empty string
+        if (isGroup) {
+            customerSelect.value = '';
+        }
+
         document.getElementById('organization_name').required = isGroup;
         document.getElementById('contact_name').required = isGroup;
         document.getElementById('contact_phone').required = isGroup;
@@ -348,6 +355,50 @@
     // Auto-calculate on page load
     document.addEventListener('DOMContentLoaded', function () {
         calculateTotal();
+
+        // Thêm validation trước khi submit
+        document.getElementById('bookingForm').addEventListener('submit', function (e) {
+            const isGroup = document.getElementById('type_group').checked;
+            const customerId = document.getElementById('customer_id').value;
+            const tourId = document.getElementById('tour_id').value;
+            const numAdults = parseInt(document.getElementById('num_adults').value) || 0;
+
+            // Validate tour
+            if (!tourId) {
+                alert('Vui lòng chọn tour!');
+                e.preventDefault();
+                return false;
+            }
+
+            // Validate số người lớn
+            if (numAdults < 1) {
+                alert('Số người lớn phải >= 1!');
+                e.preventDefault();
+                return false;
+            }
+
+            // Validate customer_id cho booking cá nhân
+            if (!isGroup && !customerId) {
+                alert('Vui lòng chọn khách hàng!');
+                e.preventDefault();
+                return false;
+            }
+
+            // Validate thông tin đoàn
+            if (isGroup) {
+                const orgName = document.getElementById('organization_name').value.trim();
+                const contactName = document.getElementById('contact_name').value.trim();
+                const contactPhone = document.getElementById('contact_phone').value.trim();
+
+                if (!orgName || !contactName || !contactPhone) {
+                    alert('Vui lòng điền đầy đủ thông tin công ty/tổ chức!');
+                    e.preventDefault();
+                    return false;
+                }
+            }
+
+            return true;
+        });
     });
 </script>
 

@@ -38,8 +38,21 @@ class Booking
         }
 
         if (!empty($filters['search'])) {
-            $sql .= " AND (c.fullname LIKE ? OR c.phone LIKE ?)";
+            $sql .= " AND (
+                c.full_name LIKE ? 
+                OR c.phone LIKE ? 
+                OR b.booking_id LIKE ? 
+                OR t.tour_name LIKE ?
+                OR b.organization_name LIKE ?
+                OR b.contact_name LIKE ?
+                OR b.contact_phone LIKE ?
+            )";
             $search = '%' . $filters['search'] . '%';
+            $params[] = $search;
+            $params[] = $search;
+            $params[] = $search;
+            $params[] = $search;
+            $params[] = $search;
             $params[] = $search;
             $params[] = $search;
         }
@@ -132,7 +145,7 @@ class Booking
                 }
             }
 
-            // Tạo booking
+            // Tạo booking - Đảm bảo customer_id là NULL chứ không phải empty string
             $sql = "INSERT INTO bookings (
                         tour_id, tour_date, customer_id, booking_type, organization_name,
                         contact_name, contact_phone, contact_email,
@@ -142,20 +155,20 @@ class Booking
 
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([
-                $data['tour_id'],
-                $data['tour_date'] ?? null,
-                $data['customer_id'] ?? null,
+                $data['tour_id'] ?: null,
+                $data['tour_date'] ?: null,
+                $data['customer_id'] ?: null,
                 $data['booking_type'] ?? 'Cá nhân',
-                $data['organization_name'] ?? null,
-                $data['contact_name'] ?? null,
-                $data['contact_phone'] ?? null,
-                $data['contact_email'] ?? null,
-                $data['num_adults'] ?? 0,
-                $data['num_children'] ?? 0,
-                $data['num_infants'] ?? 0,
-                $data['special_requests'] ?? null,
+                $data['organization_name'] ?: null,
+                $data['contact_name'] ?: null,
+                $data['contact_phone'] ?: null,
+                $data['contact_email'] ?: null,
+                (int) ($data['num_adults'] ?? 0),
+                (int) ($data['num_children'] ?? 0),
+                (int) ($data['num_infants'] ?? 0),
+                $data['special_requests'] ?: null,
                 $data['status'] ?? 'Chờ xác nhận',
-                $data['total_amount']
+                (float) ($data['total_amount'] ?? 0)
             ]);
 
             $booking_id = $this->conn->lastInsertId();
@@ -207,20 +220,20 @@ class Booking
 
         $stmt = $this->conn->prepare($sql);
         return $stmt->execute([
-            $data['tour_id'],
-            $data['tour_date'] ?? null,
-            $data['customer_id'] ?? null,
+            $data['tour_id'] ?: null,
+            $data['tour_date'] ?: null,
+            $data['customer_id'] ?: null,
             $data['booking_type'] ?? 'Cá nhân',
-            $data['organization_name'] ?? null,
-            $data['contact_name'] ?? null,
-            $data['contact_phone'] ?? null,
-            $data['contact_email'] ?? null,
-            $data['num_adults'],
-            $data['num_children'],
-            $data['num_infants'],
-            $data['special_requests'] ?? null,
-            $data['total_amount'],
-            $data['status'],
+            $data['organization_name'] ?: null,
+            $data['contact_name'] ?: null,
+            $data['contact_phone'] ?: null,
+            $data['contact_email'] ?: null,
+            (int) ($data['num_adults'] ?? 0),
+            (int) ($data['num_children'] ?? 0),
+            (int) ($data['num_infants'] ?? 0),
+            $data['special_requests'] ?: null,
+            (float) ($data['total_amount'] ?? 0),
+            $data['status'] ?? 'Chờ xác nhận',
             $id
         ]);
     }

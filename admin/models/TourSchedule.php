@@ -158,14 +158,14 @@ class TourSchedule
         $stmt = $this->conn->prepare($sql);
         return $stmt->execute([
             $data['departure_date'],
-            $data['return_date'],
-            $data['meeting_point'] ?? '',
-            $data['meeting_time'] ?? '',
-            $data['max_participants'] ?? 0,
-            $data['price_adult'] ?? 0,
-            $data['price_child'] ?? 0,
+            $data['return_date'] ?: null,
+            $data['meeting_point'] ?: null,
+            $data['meeting_time'] ?: null,
+            (int) ($data['max_participants'] ?? 0),
+            (float) ($data['price_adult'] ?? 0),
+            (float) ($data['price_child'] ?? 0),
             $data['status'] ?? 'Open',
-            $data['notes'] ?? '',
+            $data['notes'] ?: null,
             $id
         ]);
     }
@@ -351,5 +351,84 @@ class TourSchedule
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([$month, $year]);
         return $stmt->fetchAll();
+    }
+
+    // ==================== LẤY TẤT CẢ PHÂN CÔNG NHÂN SỰ ====================
+
+    public function getAllStaffAssignments($filters = [])
+    {
+        $sql = "SELECT 
+                    ss.schedule_id,
+                    ss.staff_id,
+                    ss.role,
+                    ss.assigned_at,
+                    s.full_name as staff_name,
+                    s.staff_type,
+                    s.phone as staff_phone,
+                    s.email as staff_email,
+                    ts.departure_date,
+                    ts.return_date,
+                    ts.status as schedule_status,
+                    t.tour_id,
+                    t.tour_name,
+                    t.code as tour_code
+                FROM schedule_staff ss
+                JOIN staff s ON ss.staff_id = s.staff_id
+                JOIN tour_schedules ts ON ss.schedule_id = ts.schedule_id
+                JOIN tours t ON ts.tour_id = t.tour_id
+                WHERE 1=1";
+
+        $params = [];
+
+        if (!empty($filters['staff_id'])) {
+            $sql .= " AND ss.staff_id = ?";
+            $params[] = $filters['staff_id'];
+        }
+
+        if (!empty($filters['staff_type'])) {
+            $sql .= " AND s.staff_type = ?";
+            $params[] = $filters['staff_type'];
+        }
+
+        if (!empty($filters['from_date'])) {
+            $sql .= " AND ts.departure_date >= ?";
+            $params[] = $filters['from_date'];
+        }
+
+        if (!empty($filters['to_date'])) {
+            $sql .= " AND ts.departure_date <= ?";
+            $params[] = $filters['to_date'];
+        }
+
+        $sql .= " ORDER BY ts.departure_date ASC, s.full_name ASC";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    public function getStaffAssignmentStats($filters = [])
+    {
+        $assignments = $this->getAllStaffAssignments($filters);
+
+        $uniqueStaff = [];
+        $uniqueSchedules = [];
+        $upcomingCount = 0;
+
+        foreach ($assignments as $assignment) {
+            $uniqueStaff[$assignment['staff_id']] = true;
+            $uniqueSchedules[$assignment['schedule_id']] = true;
+
+            if (strtotime($assignment['departure_date']) >= time()) {
+                $upcomingCount++;
+            }
+        }
+
+        return [
+            'total_staff' => count($uniqueStaff),
+            'total_schedules' => count($uniqueSchedules),
+            'upcoming_schedules' => $upcomingCount,
+            'total_assignments' => count($assignments)
+        ];
     }
 }
