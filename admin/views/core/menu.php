@@ -48,19 +48,6 @@ function isActive($routes)
                     </li>
                 </ul>
             </li>
-            <li class=" nav-item"><a href="#"><i class="feather icon-calendar"></i><span class="menu-title"
-                        data-i18n="Booking">Booking</span></a>
-                <ul class="menu-content">
-                    <li class="<?= isActive(['them-booking']) ? 'active' : '' ?>"><a href="?act=them-booking"><i
-                                class="feather icon-circle"></i><span class="menu-item" data-i18n="Tạo Booking">Tạo
-                                Booking</span></a>
-                    </li>
-                    <li class="<?= isActive(['list-booking']) ? 'active' : '' ?>"><a href="?act=list-booking"><i
-                                class="feather icon-circle"></i><span class="menu-item" data-i18n="Quản lý Booking">Quản
-                                lý Booking</span></a>
-                    </li>
-                </ul>
-            </li>
             <li
                 class="<?= isActive(['danh-sach-nhan-su', 'them-nhan-su', 'chi-tiet-nhan-su', 'sua-nhan-su']) ?> nav-item">
                 <a href="#"><i class="feather icon-users"></i><span class="menu-title" data-i18n="Quản lý nhân sự">Quản
