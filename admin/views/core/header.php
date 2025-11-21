@@ -132,7 +132,9 @@
                                         height="40" width="40"></span>
                             </a>
                             <div class="dropdown-menu dropdown-menu-right">
-                                <a class="dropdown-item" href="#"><i class="feather icon-power"></i> Đăng xuất</a>
+                                <a class="dropdown-item" href="?act=logout"
+                                    onclick="return confirm('Đăng xuất tài khoản?');"><i class="feather icon-power"></i>
+                                    Đăng xuất</a>
                             </div>
                         </li>
                     </ul>

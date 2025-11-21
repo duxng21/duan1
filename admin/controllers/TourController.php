@@ -455,4 +455,60 @@ class TourController
             }
         }
     }
+
+    // ==================== SEED SAMPLE ITINERARIES & POLICIES ====================
+    public function SeedTourData()
+    {
+        $tour_id = $_GET['id'] ?? null;
+        if (!$tour_id) {
+            $_SESSION['error'] = 'Thiếu tham số id!';
+            header('Location: ?act=list-tour');
+            exit();
+        }
+
+        // Dùng lớp seeder chuyên biệt
+        if (!isAdmin()) {
+            $_SESSION['error'] = 'Chỉ ADMIN mới được seed dữ liệu.';
+            header('Location: ?act=list-tour');
+            exit();
+        }
+
+        $seeder = new TourDetailSeeder();
+        $result = $seeder->seedItinerariesAndPolicies($tour_id);
+
+        $msg = 'Seed tour #' . (int) $tour_id . ': ' . implode(' | ', $result['messages']);
+        $_SESSION['success'] = $msg;
+        header('Location: ?act=chi-tiet-tour&id=' . $tour_id);
+        exit();
+    }
+
+    // ==================== BULK SEED ALL TOURS ====================
+    public function SeedAllToursData()
+    {
+        if (!isAdmin()) {
+            $_SESSION['error'] = 'Chỉ ADMIN mới được seed dữ liệu.';
+            header('Location: ?act=list-tour');
+            exit();
+        }
+
+        $tours = $this->modelTour->getAll();
+        $seeder = new TourDetailSeeder();
+        $seeded = 0;
+        $skipped = 0;
+        $errors = 0;
+        $messages = [];
+        foreach ($tours as $t) {
+            $tour_id = $t['tour_id'];
+            $res = $seeder->seedItinerariesAndPolicies($tour_id);
+            if ($res['itineraries_added'] > 0 || $res['policies_created']) {
+                $seeded++;
+            } else {
+                $skipped++;
+            }
+            $messages[] = 'Tour #' . $tour_id . ': ' . implode(' / ', $res['messages']);
+        }
+        $_SESSION['success'] = 'Bulk seed hoàn tất. Seed mới: ' . $seeded . ', bỏ qua: ' . $skipped . '. Chi tiết: ' . implode(' || ', $messages);
+        header('Location: ?act=list-tour');
+        exit();
+    }
 }
