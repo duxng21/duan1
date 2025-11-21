@@ -17,7 +17,7 @@ function isActive($routes)
         <ul class="nav navbar-nav flex-row">
             <li class="nav-item mr-auto"><a class="navbar-brand" href="/admin">
                     <div class="brand-logo"></div>
-                    <h2 class="brand-text mb-0">Panel</h2>
+                    <h2 class="brand-text mb-0">Tour Guide</h2>
                 </a></li>
             <li class="nav-item nav-toggle"><a class="nav-link modern-nav-toggle pr-0" data-toggle="collapse"><i
                         class="feather icon-x d-block d-xl-none font-medium-4 primary toggle-icon"></i><i
@@ -34,69 +34,23 @@ function isActive($routes)
             </li>
             <li class=" navigation-header"><span>CHỨC NĂNG</span>
             </li>
-            <li class="<?= isActive(['menu-tour', 'list-tour']) ?> nav-item"><a href="#"><i
-                        class="feather icon-package"></i><span class="menu-title" data-i18n="Quản lý Tour">Quản lý
-                        Tour</span></a>
-                <ul class="menu-content">
-                    <li class="<?= isActive(['menu-tour']) ? 'active' : '' ?>"><a href="?act=menu-tour"><i
-                                class="feather icon-circle"></i><span class="menu-item" data-i18n="Danh mục Tour">Danh
-                                mục Tour</span></a>
-                    </li>
-                    <li class="<?= isActive(['list-tour']) ? 'active' : '' ?>"><a href="?act=list-tour"><i
-                                class="feather icon-circle"></i><span class="menu-item" data-i18n="Danh sách Tour">Danh
-                                sách Tour</span></a>
-                    </li>
-                </ul>
+            <li class="<?= isActive(['tour-lich-lam-viec']) ?> nav-item"><a href="?act=tour-lich-lam-viec"><i
+                        class="feather icon-calendar""></i><span class=" menu-title" data-i18n="Tour & Lịch Làm Việc">Tour & Lịch Làm Việc</span></a>
             </li>
-            <li
-                class="<?= isActive(['danh-sach-nhan-su', 'them-nhan-su', 'chi-tiet-nhan-su', 'sua-nhan-su']) ?> nav-item">
-                <a href="#"><i class="feather icon-users"></i><span class="menu-title" data-i18n="Quản lý nhân sự">Quản
-                        lý nhân sự</span></a>
-                <ul class="menu-content">
-                    <li class="<?= isActive(['danh-sach-nhan-su']) ? 'active' : '' ?>"><a
-                            href="?act=danh-sach-nhan-su"><i class="feather icon-circle"></i><span class="menu-item"
-                                data-i18n="Danh sách nhân sự">Danh sách nhân sự</span></a>
-                    </li>
-                    <li class="<?= isActive(['them-nhan-su']) ? 'active' : '' ?>"><a href="?act=them-nhan-su"><i
-                                class="feather icon-circle"></i><span class="menu-item" data-i18n="Thêm nhân sự">Thêm
-                                nhân sự</span></a>
-                    </li>
-                </ul>
+            <li class="<?= isActive(['danh-sach-khach']) ?> nav-item"><a href="?act=danh-sach-khach"><i
+                        class="feather icon-users""></i><span class=" menu-title" data-i18n="Danh sách khách">Danh sách khách</span></a>
             </li>
-            <li
-                class="<?= isActive(['danh-sach-booking', 'them-booking', 'chi-tiet-booking', 'sua-booking']) ?> nav-item">
-                <a href="#"><i class="feather icon-book-open"></i><span class="menu-title"
-                        data-i18n="Quản lý Booking">Quản
-                        lý Booking</span></a>
-                <ul class="menu-content">
-                    <li class="<?= isActive(['danh-sach-booking']) ? 'active' : '' ?>"><a
-                            href="?act=danh-sach-booking"><i class="feather icon-circle"></i><span class="menu-item"
-                                data-i18n="Danh sách booking">Danh sách booking</span></a>
-                    </li>
-                    <li class="<?= isActive(['them-booking']) ? 'active' : '' ?>"><a href="?act=them-booking"><i
-                                class="feather icon-circle"></i><span class="menu-item" data-i18n="Tạo booking">Tạo
-                                booking</span></a>
-                    </li>
-                </ul>
+            <li class="<?= isActive(['nhat-ky-tour']) ?> nav-item"><a href="?act=nhat-ky-tour"><i
+                        class="feather icon-file-text""></i><span class=" menu-title" data-i18n="Nhật ký Tour">Nhật ký Tour</span></a>
             </li>
-            <li
-                class="<?= isActive(['danh-sach-lich-khoi-hanh', 'them-lich-khoi-hanh', 'chi-tiet-lich-khoi-hanh', 'sua-lich-khoi-hanh', 'xem-lich-theo-thang']) ?> nav-item">
-                <a href="#"><i class="feather icon-clock"></i><span class="menu-title" data-i18n="Lịch khởi hành">Lịch
-                        khởi hành</span></a>
-                <ul class="menu-content">
-                    <li class="<?= isActive(['danh-sach-lich-khoi-hanh']) ? 'active' : '' ?>"><a
-                            href="?act=danh-sach-lich-khoi-hanh"><i class="feather icon-circle"></i><span
-                                class="menu-item" data-i18n="Danh sách lịch">Danh sách lịch</span></a>
-                    </li>
-                    <li class="<?= isActive(['them-lich-khoi-hanh']) ? 'active' : '' ?>"><a
-                            href="?act=them-lich-khoi-hanh"><i class="feather icon-circle"></i><span class="menu-item"
-                                data-i18n="Thêm lịch mới">Thêm lịch mới</span></a>
-                    </li>
-                    <li class="<?= isActive(['xem-lich-theo-thang']) ? 'active' : '' ?>"><a
-                            href="?act=xem-lich-theo-thang"><i class="feather icon-circle"></i><span class="menu-item"
-                                data-i18n="Xem lịch tháng">Xem lịch tháng</span></a>
-                    </li>
-                </ul>
+            <li class="<?= isActive(['diem-danh-khach']) ?> nav-item"><a href="?act=diem-danh-khach"><i
+                        class="feather icon-user-check""></i><span class=" menu-title" data-i18n="Điểm danh khách">Điểm danh khách</span></a>
+            </li>
+            <li class="<?= isActive(['yeu-cau-dac-biet']) ?> nav-item"><a href="?act=yeu-cau-dac-biet"><i
+                        class="feather icon-alert-circle""></i><span class=" menu-title" data-i18n="Yêu cầu đặc biệt">Yêu cầu đặc biệt</span></a>
+            </li>
+            <li class="<?= isActive(['danh-gia-phan-hoi']) ?> nav-item"><a href="?act=danh-gia-phan-hoi"><i
+                        class="feather icon-message-square""></i><span class=" menu-title" data-i18n="Đánh Giá & Phản Hồi">Đánh Giá & Phản Hồi</span></a>
             </li>
         </ul>
     </div>
