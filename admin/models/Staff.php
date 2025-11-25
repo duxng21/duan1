@@ -2,6 +2,109 @@
 class Staff
 {
     public $conn;
+    private $allowedTypes = ['Guide', 'Manager'];
+    // Các giá trị mapping để tránh cảnh báo MySQL ENUM / CHAR bị truncate
+    private function normalizeCategory($val)
+    {
+        if ($val === null || $val === '')
+            return null;
+        $map = [
+            'Nội địa' => 'Domestic',
+            'Noi dia' => 'Domestic',
+            'Quốc tế' => 'International',
+            'Quoc te' => 'International'
+        ];
+        return $map[$val] ?? $val;
+    }
+    private function normalizeGroupSpecialty($val)
+    {
+        if ($val === null || $val === '')
+            return null;
+        $map = [
+            'Cả hai' => 'Both',
+            'Ca hai' => 'Both',
+            'Nội địa' => 'Domestic',
+            'Quốc tế' => 'International'
+        ];
+        return $map[$val] ?? $val;
+    }
+    private function normalizeHealthStatus($val)
+    {
+        if ($val === null || $val === '')
+            return null;
+        $map = [
+            'Tốt' => 'Good',
+            'Tot' => 'Good',
+            'Trung bình' => 'Average',
+            'Yếu' => 'Weak'
+        ];
+        return $map[$val] ?? $val;
+    }
+
+    // Lấy danh sách giá trị ENUM thực tế của một cột
+    private function getEnumValues($table, $column)
+    {
+        try {
+            $sql = "SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([DB_NAME, $table, $column]);
+            $row = $stmt->fetch();
+            if (!$row || empty($row['COLUMN_TYPE']))
+                return [];
+            if (preg_match('/enum\\((.*)\\)/i', $row['COLUMN_TYPE'], $m)) {
+                $parts = str_getcsv($m[1], ',', "'\"", "'\"");
+                $clean = [];
+                foreach ($parts as $p) {
+                    $clean[] = trim($p, "'\"");
+                }
+                return $clean;
+            }
+        } catch (Exception $e) {
+            return [];
+        }
+        return [];
+    }
+
+    // Map giá trị chuẩn hóa vào một giá trị nằm trong ENUM thực tế để tránh Warning 1265
+    private function mapToEnum($value, $enumValues, $group)
+    {
+        if (empty($enumValues))
+            return $value; // không phải ENUM
+        if (in_array($value, $enumValues))
+            return $value; // đã hợp lệ
+        $sets = [];
+        switch ($group) {
+            case 'category':
+                $sets = [
+                    ['Domestic', 'Nội địa', 'Noi dia', 'ND'],
+                    ['International', 'Quốc tế', 'Quoc te', 'QT']
+                ];
+                break;
+            case 'group':
+                $sets = [
+                    ['Both', 'Cả hai', 'Ca hai'],
+                    ['Domestic', 'Nội địa'],
+                    ['International', 'Quốc tế']
+                ];
+                break;
+            case 'health':
+                $sets = [
+                    ['Good', 'Tốt', 'Tot'],
+                    ['Average', 'Trung bình', 'Trung binh'],
+                    ['Weak', 'Yếu', 'Yeu']
+                ];
+                break;
+        }
+        foreach ($sets as $synGroup) {
+            foreach ($synGroup as $syn) {
+                if (in_array($syn, $enumValues)) {
+                    return $syn; // trả về giá trị đầu tiên tìm thấy trong enum
+                }
+            }
+        }
+        // Mặc định: dùng phần tử đầu tiên của enum
+        return $enumValues[0];
+    }
 
     public function __construct()
     {
@@ -12,7 +115,8 @@ class Staff
 
     public function getAll()
     {
-        $sql = "SELECT * FROM staff ORDER BY created_at DESC";
+        $in = "'" . implode("','", $this->allowedTypes) . "'";
+        $sql = "SELECT * FROM staff WHERE staff_type IN ($in) ORDER BY created_at DESC";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll();
@@ -28,6 +132,9 @@ class Staff
 
     public function getByType($type)
     {
+        if (!in_array($type, $this->allowedTypes)) {
+            return []; // loại không hợp lệ thì trả về rỗng
+        }
         $sql = "SELECT * FROM staff WHERE staff_type = ? AND status = 1 ORDER BY full_name ASC";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([$type]);
@@ -36,7 +143,8 @@ class Staff
 
     public function getActive()
     {
-        $sql = "SELECT * FROM staff WHERE status = 1 ORDER BY staff_type, full_name ASC";
+        $in = "'" . implode("','", $this->allowedTypes) . "'";
+        $sql = "SELECT * FROM staff WHERE status = 1 AND staff_type IN ($in) ORDER BY staff_type, full_name ASC";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll();
@@ -46,6 +154,33 @@ class Staff
 
     public function create($data)
     {
+        if (!in_array($data['staff_type'], $this->allowedTypes)) {
+            throw new Exception('Loại nhân sự không hợp lệ (chỉ hỗ trợ Guide, Manager)');
+        }
+        // Chuẩn hóa để tránh Warning 1265 (Data truncated)
+        $data['staff_category'] = $this->normalizeCategory($data['staff_category'] ?? null);
+        $data['group_specialty'] = $this->normalizeGroupSpecialty($data['group_specialty'] ?? null);
+        $data['health_status'] = $this->normalizeHealthStatus($data['health_status'] ?? null);
+        // Fallback an toàn nếu null
+        if (empty($data['staff_category']))
+            $data['staff_category'] = 'Domestic';
+        if (empty($data['group_specialty']))
+            $data['group_specialty'] = 'Both';
+        if (empty($data['health_status']))
+            $data['health_status'] = 'Good';
+        // Map vào ENUM thực tế nếu có
+        $catEnums = $this->getEnumValues('staff', 'staff_category');
+        if ($catEnums) {
+            $data['staff_category'] = $this->mapToEnum($data['staff_category'], $catEnums, 'category');
+        }
+        $grpEnums = $this->getEnumValues('staff', 'group_specialty');
+        if ($grpEnums) {
+            $data['group_specialty'] = $this->mapToEnum($data['group_specialty'], $grpEnums, 'group');
+        }
+        $healthEnums = $this->getEnumValues('staff', 'health_status');
+        if ($healthEnums) {
+            $data['health_status'] = $this->mapToEnum($data['health_status'], $healthEnums, 'health');
+        }
         $sql = "INSERT INTO staff (
                     full_name, date_of_birth, gender, address, avatar, phone, email, 
                     id_card, license_number, experience_years, languages, staff_type,
@@ -55,7 +190,7 @@ class Staff
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $this->conn->prepare($sql);
-        return $stmt->execute([
+        $ok = $stmt->execute([
             $data['full_name'],
             $data['date_of_birth'] ?? null,
             $data['gender'] ?? 'Nam',
@@ -68,10 +203,10 @@ class Staff
             $data['experience_years'] ?? 0,
             $data['languages'] ?? null,
             $data['staff_type'],
-            $data['staff_category'] ?? 'Nội địa',
+            $data['staff_category'] ?? 'Domestic',
             $data['specialization'] ?? null,
-            $data['group_specialty'] ?? 'Cả hai',
-            $data['health_status'] ?? 'Tốt',
+            $data['group_specialty'] ?? 'Both',
+            $data['health_status'] ?? 'Good',
             $data['health_notes'] ?? null,
             $data['emergency_contact'] ?? null,
             $data['emergency_phone'] ?? null,
@@ -80,12 +215,43 @@ class Staff
             $data['status'] ?? 1,
             $data['notes'] ?? null
         ]);
+        if (!$ok) {
+            $info = $stmt->errorInfo();
+            throw new Exception('Lỗi thêm nhân sự: ' . ($info[2] ?? 'Không rõ'));
+        }
+        return $ok;
     }
 
     // ==================== CẬP NHẬT NHÂN SỰ ====================
 
     public function update($id, $data)
     {
+        if (!in_array($data['staff_type'], $this->allowedTypes)) {
+            throw new Exception('Loại nhân sự không hợp lệ (chỉ hỗ trợ Guide, Manager)');
+        }
+        // Chuẩn hóa trước khi cập nhật
+        $data['staff_category'] = $this->normalizeCategory($data['staff_category'] ?? null);
+        $data['group_specialty'] = $this->normalizeGroupSpecialty($data['group_specialty'] ?? null);
+        $data['health_status'] = $this->normalizeHealthStatus($data['health_status'] ?? null);
+        if (empty($data['staff_category']))
+            $data['staff_category'] = 'Domestic';
+        if (empty($data['group_specialty']))
+            $data['group_specialty'] = 'Both';
+        if (empty($data['health_status']))
+            $data['health_status'] = 'Good';
+        // Map vào ENUM thực tế nếu có
+        $catEnums = $this->getEnumValues('staff', 'staff_category');
+        if ($catEnums) {
+            $data['staff_category'] = $this->mapToEnum($data['staff_category'], $catEnums, 'category');
+        }
+        $grpEnums = $this->getEnumValues('staff', 'group_specialty');
+        if ($grpEnums) {
+            $data['group_specialty'] = $this->mapToEnum($data['group_specialty'], $grpEnums, 'group');
+        }
+        $healthEnums = $this->getEnumValues('staff', 'health_status');
+        if ($healthEnums) {
+            $data['health_status'] = $this->mapToEnum($data['health_status'], $healthEnums, 'health');
+        }
         $sql = "UPDATE staff SET 
                     full_name = ?, 
                     date_of_birth = ?,
@@ -126,10 +292,10 @@ class Staff
             $data['experience_years'] ?? 0,
             $data['languages'] ?? null,
             $data['staff_type'],
-            $data['staff_category'] ?? 'Nội địa',
+            $data['staff_category'] ?? 'Domestic',
             $data['specialization'] ?? null,
-            $data['group_specialty'] ?? 'Cả hai',
-            $data['health_status'] ?? 'Tốt',
+            $data['group_specialty'] ?? 'Both',
+            $data['health_status'] ?? 'Good',
             $data['health_notes'] ?? null,
             $data['emergency_contact'] ?? null,
             $data['emergency_phone'] ?? null,
@@ -169,11 +335,13 @@ class Staff
 
     public function getStatistics()
     {
+        $in = "'" . implode("','", $this->allowedTypes) . "'";
         $sql = "SELECT 
                     staff_type,
                     COUNT(*) as total,
                     SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as active_count
                 FROM staff
+                WHERE staff_type IN ($in)
                 GROUP BY staff_type";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute();
@@ -637,6 +805,160 @@ class Staff
         $stmt = $this->conn->prepare($sql);
         $stmt->execute(['%' . $specialization . '%']);
         return $stmt->fetchAll();
+    }
+
+    // ==================== USE CASE 1: THỐNG KÊ VÀ BÁO CÁO ====================
+
+    /**
+     * Lấy danh sách staff với filters (Use Case 1 - A1, A2)
+     */
+    public function getAllWithFilters($filters = [])
+    {
+        $sql = "SELECT * FROM staff WHERE 1=1";
+        $params = [];
+
+        if (!empty($filters['type'])) {
+            $sql .= " AND staff_type = ?";
+            $params[] = $filters['type'];
+        }
+
+        if (isset($filters['status']) && $filters['status'] !== '') {
+            $sql .= " AND status = ?";
+            $params[] = (int) $filters['status'];
+        }
+
+        if (!empty($filters['category'])) {
+            $sql .= " AND staff_category = ?";
+            $params[] = $filters['category'];
+        }
+
+        if (!empty($filters['language'])) {
+            $sql .= " AND languages LIKE ?";
+            $params[] = '%' . $filters['language'] . '%';
+        }
+
+        if (!empty($filters['search'])) {
+            $sql .= " AND (full_name LIKE ? OR phone LIKE ? OR email LIKE ? OR specialization LIKE ?)";
+            $searchTerm = '%' . $filters['search'] . '%';
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+
+        $sql .= " ORDER BY full_name ASC";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Thống kê theo phân loại (Use Case 1 - Bước 5a)
+     */
+    public function getStatisticsByCategory()
+    {
+        $sql = "SELECT 
+                    staff_category,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as active,
+                    AVG(performance_rating) as avg_rating,
+                    SUM(total_tours) as total_tours
+                FROM staff
+                WHERE staff_type = 'Guide'
+                GROUP BY staff_category";
+        $stmt = $this->conn->query($sql);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Top HDV theo số tour (Use Case 1 - Bước 5b)
+     */
+    public function getTopGuidesByTours($limit = 10)
+    {
+        $sql = "SELECT 
+                    staff_id,
+                    full_name,
+                    staff_category,
+                    languages,
+                    total_tours,
+                    performance_rating,
+                    experience_years
+                FROM staff
+                WHERE staff_type = 'Guide' AND status = 1
+                ORDER BY total_tours DESC, performance_rating DESC
+                LIMIT ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$limit]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Thống kê theo tháng (Use Case 1 - Bước 5c)
+     */
+    public function getMonthlyStatistics($year)
+    {
+        $sql = "SELECT 
+                    MONTH(sth.tour_date) as month,
+                    COUNT(DISTINCT sth.staff_id) as active_guides,
+                    COUNT(sth.tour_id) as total_tours,
+                    AVG(sth.customer_rating) as avg_rating
+                FROM staff_tour_history sth
+                JOIN staff s ON sth.staff_id = s.staff_id
+                WHERE YEAR(sth.tour_date) = ? AND s.staff_type = 'Guide'
+                GROUP BY MONTH(sth.tour_date)
+                ORDER BY month";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$year]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Thống kê theo ngôn ngữ
+     */
+    public function getStatisticsByLanguage()
+    {
+        $sql = "SELECT 
+                    languages,
+                    COUNT(*) as total,
+                    AVG(performance_rating) as avg_rating
+                FROM staff
+                WHERE staff_type = 'Guide' AND status = 1 AND languages IS NOT NULL
+                GROUP BY languages
+                ORDER BY total DESC";
+        $stmt = $this->conn->query($sql);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Tính hiệu suất HDV (số tour/tháng, đánh giá) - Use Case 1 Bước 5b
+     */
+    public function calculatePerformanceMetrics($staff_id, $months = 12)
+    {
+        $sql = "SELECT 
+                    s.staff_id,
+                    s.full_name,
+                    s.total_tours,
+                    s.performance_rating,
+                    COUNT(sth.tour_id) as tours_in_period,
+                    AVG(sth.customer_rating) as avg_customer_rating,
+                    AVG(sth.manager_rating) as avg_manager_rating,
+                    SUM(sth.salary_paid + sth.bonus) as total_earnings
+                FROM staff s
+                LEFT JOIN staff_tour_history sth ON s.staff_id = sth.staff_id 
+                    AND sth.tour_date >= DATE_SUB(NOW(), INTERVAL ? MONTH)
+                WHERE s.staff_id = ?
+                GROUP BY s.staff_id";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$months, $staff_id]);
+        $result = $stmt->fetch();
+
+        if ($result) {
+            $result['tours_per_month'] = $result['tours_in_period'] / $months;
+        }
+
+        return $result;
     }
 }
 

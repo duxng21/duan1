@@ -12,14 +12,16 @@ class StaffController
 
     public function ListStaff()
     {
-        $type = $_GET['type'] ?? null;
+        // === Use Case 1: Hỗ trợ filter và search ===
+        $filters = [
+            'type' => $_GET['type'] ?? null,
+            'status' => $_GET['status'] ?? null,
+            'category' => $_GET['category'] ?? null,
+            'search' => $_GET['search'] ?? null,
+            'language' => $_GET['language'] ?? null
+        ];
 
-        if ($type) {
-            $staffList = $this->modelStaff->getByType($type);
-        } else {
-            $staffList = $this->modelStaff->getAll();
-        }
-
+        $staffList = $this->modelStaff->getAllWithFilters($filters);
         $statistics = $this->modelStaff->getStatistics();
 
         require_once './views/staff/list_staff.php';
@@ -29,6 +31,7 @@ class StaffController
 
     public function AddStaff()
     {
+        requireRole('ADMIN');
         require_once './views/staff/add_staff.php';
     }
 
@@ -36,6 +39,7 @@ class StaffController
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
+                requireRole('ADMIN');
                 // Validate
                 if (empty($_POST['full_name'])) {
                     $_SESSION['error'] = 'Họ tên không được để trống!';
@@ -90,18 +94,13 @@ class StaffController
                     }
                 }
 
-                $result = $this->modelStaff->create($data);
-
-                if ($result) {
-                    $_SESSION['success'] = 'Thêm nhân sự thành công!';
-                } else {
-                    $_SESSION['error'] = 'Thêm nhân sự thất bại!';
-                }
+                $this->modelStaff->create($data);
+                $_SESSION['success'] = 'Thêm nhân sự thành công!';
 
                 header('Location: ?act=danh-sach-nhan-su');
                 exit();
             } catch (Exception $e) {
-                $_SESSION['error'] = 'Lỗi: ' . $e->getMessage();
+                $_SESSION['error'] = $e->getMessage();
                 header('Location: ?act=them-nhan-su');
                 exit();
             }
@@ -246,5 +245,146 @@ class StaffController
         $schedules = $this->modelStaff->getSchedulesByStaff($id, $from_date, $to_date);
 
         require_once './views/staff/staff_detail.php';
+    }
+
+    // ==================== THỐNG KÊ VÀ BÁO CÁO (Use Case 1) ====================
+
+    /**
+     * Hiển thị trang thống kê tổng quan HDV
+     */
+    public function Statistics()
+    {
+        // Thống kê tổng quan
+        $overview = $this->modelStaff->getStatistics();
+
+        // Thống kê theo loại (nội địa, quốc tế)
+        $byCategory = $this->modelStaff->getStatisticsByCategory();
+
+        // Top HDV theo số tour
+        $topGuides = $this->modelStaff->getTopGuidesByTours(10);
+
+        // Thống kê theo tháng
+        $year = $_GET['year'] ?? date('Y');
+        $monthlyStats = $this->modelStaff->getMonthlyStatistics($year);
+
+        // Thống kê theo ngôn ngữ
+        $languageStats = $this->modelStaff->getStatisticsByLanguage();
+
+        require_once './views/staff/statistics.php';
+    }
+
+    /**
+     * Xuất báo cáo Excel
+     */
+    public function ExportExcel()
+    {
+        try {
+            $filters = [
+                'type' => $_GET['type'] ?? null,
+                'status' => $_GET['status'] ?? null,
+                'category' => $_GET['category'] ?? null
+            ];
+
+            $staffList = $this->modelStaff->getAllWithFilters($filters);
+
+            // Tạo file Excel
+            header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="Danh_sach_HDV_' . date('Y-m-d') . '.xls"');
+            header('Pragma: no-cache');
+            header('Expires: 0');
+
+            echo "\xEF\xBB\xBF"; // UTF-8 BOM
+
+            echo '<html xmlns:x="urn:schemas-microsoft-com:office:excel">';
+            echo '<head><meta charset="UTF-8"></head>';
+            echo '<body>';
+            echo '<table border="1">';
+            echo '<thead>';
+            echo '<tr style="background-color: #4CAF50; color: white; font-weight: bold;">';
+            echo '<th>Mã HDV</th>';
+            echo '<th>Họ tên</th>';
+            echo '<th>Loại</th>';
+            echo '<th>Phân loại</th>';
+            echo '<th>Ngôn ngữ</th>';
+            echo '<th>Chuyên môn</th>';
+            echo '<th>Kinh nghiệm (năm)</th>';
+            echo '<th>Số tour đã dẫn</th>';
+            echo '<th>Đánh giá</th>';
+            echo '<th>Trạng thái</th>';
+            echo '<th>Điện thoại</th>';
+            echo '<th>Email</th>';
+            echo '</tr>';
+            echo '</thead>';
+            echo '<tbody>';
+
+            foreach ($staffList as $staff) {
+                echo '<tr>';
+                echo '<td>' . htmlspecialchars($staff['staff_id']) . '</td>';
+                echo '<td>' . htmlspecialchars($staff['full_name']) . '</td>';
+                echo '<td>' . htmlspecialchars($staff['staff_type']) . '</td>';
+                echo '<td>' . htmlspecialchars($staff['staff_category'] ?? 'N/A') . '</td>';
+                echo '<td>' . htmlspecialchars($staff['languages'] ?? 'N/A') . '</td>';
+                echo '<td>' . htmlspecialchars($staff['specialization'] ?? 'N/A') . '</td>';
+                echo '<td>' . htmlspecialchars($staff['experience_years'] ?? 0) . '</td>';
+                echo '<td>' . htmlspecialchars($staff['total_tours'] ?? 0) . '</td>';
+                echo '<td>' . htmlspecialchars($staff['performance_rating'] ?? 0) . '</td>';
+                echo '<td>' . ($staff['status'] ? 'Hoạt động' : 'Nghỉ việc') . '</td>';
+                echo '<td>' . htmlspecialchars($staff['phone'] ?? '') . '</td>';
+                echo '<td>' . htmlspecialchars($staff['email'] ?? '') . '</td>';
+                echo '</tr>';
+            }
+
+            echo '</tbody>';
+            echo '</table>';
+            echo '</body>';
+            echo '</html>';
+
+            exit();
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Lỗi xuất file: ' . $e->getMessage();
+            header('Location: ?act=danh-sach-nhan-su');
+            exit();
+        }
+    }
+
+    /**
+     * Xuất báo cáo PDF (đơn giản)
+     */
+    public function ExportPDF()
+    {
+        try {
+            $filters = [
+                'type' => $_GET['type'] ?? null,
+                'status' => $_GET['status'] ?? null,
+                'category' => $_GET['category'] ?? null
+            ];
+
+            $staffList = $this->modelStaff->getAllWithFilters($filters);
+            $statistics = $this->modelStaff->getStatistics();
+
+            // Tạo HTML cho PDF
+            ob_start();
+            require_once './views/staff/report_pdf.php';
+            $html = ob_get_clean();
+
+            // Output PDF headers
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="Bao_cao_HDV_' . date('Y-m-d') . '.pdf"');
+
+            // Nếu có thư viện PDF như mPDF, TCPDF, hoặc DomPDF:
+            // require_once '../vendor/autoload.php';
+            // $mpdf = new \Mpdf\Mpdf(['format' => 'A4']);
+            // $mpdf->WriteHTML($html);
+            // $mpdf->Output();
+
+            // Tạm thời: xuất HTML (có thể dùng browser Print to PDF)
+            echo $html;
+
+            exit();
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Lỗi xuất PDF: ' . $e->getMessage();
+            header('Location: ?act=danh-sach-nhan-su');
+            exit();
+        }
     }
 }

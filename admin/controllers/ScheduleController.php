@@ -35,7 +35,8 @@ class ScheduleController
             }
             if ($tour_id) {
                 $schedules = array_filter($schedulesRaw, function ($s) use ($tour_id) {
-                    return $s['tour_id'] == $tour_id; });
+                    return $s['tour_id'] == $tour_id;
+                });
                 $tour = $this->modelTour->getById($tour_id);
             } else {
                 $schedules = $schedulesRaw;
@@ -85,7 +86,7 @@ class ScheduleController
                 $data = [
                     'tour_id' => $_POST['tour_id'],
                     'departure_date' => $_POST['departure_date'],
-                    'return_date' => $_POST['return_date'],
+                    'return_date' => !empty($_POST['return_date']) ? $_POST['return_date'] : null,
                     'meeting_point' => $_POST['meeting_point'] ?? '',
                     'meeting_time' => $_POST['meeting_time'] ?? '',
                     'max_participants' => $_POST['max_participants'] ?? 0,
@@ -239,6 +240,8 @@ class ScheduleController
                     $_SESSION['warning'] = 'Nhân viên này đã có lịch trình khác trong khoảng thời gian này!';
                 } else {
                     $this->modelSchedule->assignStaff($schedule_id, $staff_id, $role);
+                    // Gửi thông báo tự động cho nhân viên
+                    notifyStaffAssignment($schedule_id, $staff_id);
                     $_SESSION['success'] = 'Phân công nhân sự thành công!';
                 }
             } catch (Exception $e) {
@@ -289,6 +292,8 @@ class ScheduleController
                 }
 
                 $this->modelSchedule->assignService($schedule_id, $service_id, $quantity, $unit_price, $notes);
+                // Gửi thông báo tự động cho đối tác dịch vụ
+                notifyServiceAssignment($schedule_id, $service_id);
                 $_SESSION['success'] = 'Phân công dịch vụ thành công!';
             } catch (Exception $e) {
                 $_SESSION['error'] = $e->getMessage();
@@ -432,6 +437,40 @@ class ScheduleController
                 }
             }
         }
+        header('Location: ?act=chi-tiet-lich-khoi-hanh&id=' . $schedule_id);
+        exit();
+    }
+
+    // =============== THAY ĐỔI TRẠNG THÁI TOUR ===============
+    public function ChangeScheduleStatus()
+    {
+        requireRole('ADMIN');
+        try {
+            $schedule_id = $_POST['schedule_id'] ?? $_GET['schedule_id'] ?? null;
+            $new_status = $_POST['status'] ?? $_GET['status'] ?? null;
+
+            if (!$schedule_id || !$new_status) {
+                $_SESSION['error'] = 'Thiếu thông tin trạng thái!';
+                header('Location: ?act=danh-sach-lich-khoi-hanh');
+                exit();
+            }
+
+            $this->modelSchedule->changeScheduleStatus($schedule_id, $new_status);
+
+            $statusNames = [
+                'Open' => 'Mở đặt',
+                'Full' => 'Đầy',
+                'Confirmed' => 'Đã xác nhận',
+                'In Progress' => 'Đang diễn ra',
+                'Completed' => 'Hoàn thành',
+                'Cancelled' => 'Đã hủy'
+            ];
+
+            $_SESSION['success'] = 'Đã chuyển trạng thái sang: ' . ($statusNames[$new_status] ?? $new_status);
+        } catch (Exception $e) {
+            $_SESSION['error'] = $e->getMessage();
+        }
+
         header('Location: ?act=chi-tiet-lich-khoi-hanh&id=' . $schedule_id);
         exit();
     }

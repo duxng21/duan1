@@ -152,6 +152,11 @@ class AuthController
             header('Location: ?act=register');
             exit();
         }
+        if ($email !== '' && $this->userModel->emailExists($email)) {
+            $_SESSION['error'] = 'Email đã tồn tại.';
+            header('Location: ?act=register');
+            exit();
+        }
         $conn = connectDB();
         $stmt = $conn->prepare('SELECT role_id FROM roles WHERE role_code = ? LIMIT 1');
         $stmt->execute([$role_code]);
@@ -162,15 +167,21 @@ class AuthController
             exit();
         }
         $hash = password_hash($password, PASSWORD_DEFAULT);
-        $user_id = $this->userModel->create([
-            'username' => $username,
-            'password' => $hash,
-            'full_name' => $full_name,
-            'email' => $email,
-            'role_id' => $role['role_id'],
-            'staff_id' => $staff_id,
-            'status' => 'Active'
-        ]);
+        try {
+            $user_id = $this->userModel->create([
+                'username' => $username,
+                'password' => $hash,
+                'full_name' => $full_name,
+                'email' => $email,
+                'role_id' => $role['role_id'],
+                'staff_id' => $staff_id,
+                'status' => 'Active'
+            ]);
+        } catch (Exception $e) {
+            $_SESSION['error'] = $e->getMessage();
+            header('Location: ?act=register');
+            exit();
+        }
         logUserActivity('create_user', 'system', $user_id, 'Tạo user: ' . $username);
         $_SESSION['success'] = 'Tạo tài khoản thành công!';
         header('Location: ?act=register');
@@ -266,6 +277,11 @@ class AuthController
             header('Location: ?act=tao-user');
             exit();
         }
+        if ($email !== '' && $this->userModel->emailExists($email)) {
+            $_SESSION['error'] = 'Email đã tồn tại.';
+            header('Location: ?act=tao-user');
+            exit();
+        }
         // Kiểm tra role_id hợp lệ
         $conn = connectDB();
         $stmt = $conn->prepare('SELECT role_code FROM roles WHERE role_id = ? LIMIT 1');
@@ -277,15 +293,21 @@ class AuthController
             exit();
         }
         $hash = password_hash($password, PASSWORD_DEFAULT);
-        $user_id = $this->userModel->create([
-            'username' => $username,
-            'password' => $hash,
-            'full_name' => $full_name,
-            'email' => $email,
-            'role_id' => $role_id,
-            'staff_id' => $staff_id,
-            'status' => 'Active'
-        ]);
+        try {
+            $user_id = $this->userModel->create([
+                'username' => $username,
+                'password' => $hash,
+                'full_name' => $full_name,
+                'email' => $email,
+                'role_id' => $role_id,
+                'staff_id' => $staff_id,
+                'status' => 'Active'
+            ]);
+        } catch (Exception $e) {
+            $_SESSION['error'] = $e->getMessage();
+            header('Location: ?act=tao-user');
+            exit();
+        }
         logUserActivity('create_user_admin', 'user', $user_id, 'Admin tạo user: ' . $username);
         $_SESSION['success'] = 'Tạo tài khoản thành công!';
         header('Location: ?act=danh-sach-user');

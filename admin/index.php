@@ -12,6 +12,7 @@ session_start();
 require_once '../commons/env.php'; // Khai báo biến môi trường
 require_once '../commons/function.php'; // Hàm hỗ trợ
 require_once '../commons/permission_simple.php'; // Quyền & session helpers
+require_once '../commons/notification.php'; // Hệ thống thông báo
 
 // Require toàn bộ file Controllers
 require_once './controllers/TourController.php';
@@ -20,6 +21,9 @@ require_once './controllers/StaffController.php';
 require_once './controllers/StaffExtendedController.php';
 require_once './controllers/AuthController.php';
 require_once './controllers/BookingController.php';
+require_once './controllers/ReportController.php';
+require_once './controllers/QuoteController.php';
+require_once './controllers/SpecialNoteController.php';
 
 // Require toàn bộ file Models
 require_once './models/Tour.php';
@@ -29,6 +33,9 @@ require_once './models/TourSchedule.php';
 require_once './models/Staff.php';
 require_once './models/Booking.php';
 require_once './models/User.php'; // Needed for AuthController
+require_once './models/Report.php';
+require_once './models/Quote.php';
+require_once './models/SpecialNote.php';
 // require_once './models/ProductModel.php';
 
 // Route
@@ -78,6 +85,7 @@ try {
         'sua-lich-khoi-hanh' => (new ScheduleController())->EditSchedule(),
         'cap-nhat-lich-khoi-hanh' => (new ScheduleController())->UpdateSchedule(),
         'xoa-lich-khoi-hanh' => (new ScheduleController())->DeleteSchedule(),
+        'thay-doi-trang-thai-tour' => (new ScheduleController())->ChangeScheduleStatus(),
         'phan-cong-nhan-su' => (new ScheduleController())->AssignStaff(),
         'xoa-nhan-su-khoi-lich' => (new ScheduleController())->RemoveStaff(),
         'phan-bo-dich-vu' => (new ScheduleController())->AssignService(),
@@ -97,6 +105,11 @@ try {
         'sua-nhan-su' => (new StaffController())->EditStaff(),
         'cap-nhat-nhan-su' => (new StaffController())->UpdateStaff(),
         'xoa-nhan-su' => (new StaffController())->DeleteStaff(),
+
+        // === Use Case 1: Thống kê và báo cáo HDV ===
+        'thong-ke-nhan-su' => (new StaffController())->Statistics(),
+        'xuat-excel-nhan-su' => (new StaffController())->ExportExcel(),
+        'xuat-pdf-nhan-su' => (new StaffController())->ExportPDF(),
 
         // Quản lý chứng chỉ nhân sự
         'quan-ly-chung-chi' => (new StaffExtendedController())->ManageCertificates(),
@@ -133,6 +146,37 @@ try {
         'cap-nhat-trang-thai-booking' => (new BookingController())->UpdateStatus(),
         'huy-booking' => (new BookingController())->CancelBooking(),
         'in-phieu-booking' => (new BookingController())->PrintBooking(),
+
+        // Use Case 3: Quản lý danh sách khách & Check-in
+        'danh-sach-khach' => (new BookingController())->ViewGuestList(),
+        'check-in-khach' => (new BookingController())->CheckInGuest(),
+        'phan-phong-khach' => (new BookingController())->AssignRoom(),
+        'xuat-danh-sach-doan' => (new BookingController())->ExportGuestListPDF(),
+        'bao-cao-doan' => (new BookingController())->GuestSummaryReport(),
+        'xuat-danh-sach-da-check-in' => (new BookingController())->ExportCheckedInGuests(),
+
+        // Use Case 4: Quản lý ghi chú đặc biệt
+        'ghi-chu-dac-biet' => (new SpecialNoteController())->ListNotesBySchedule(),
+        'them-ghi-chu' => (new SpecialNoteController())->CreateNote(),
+        'sua-ghi-chu' => (new SpecialNoteController())->EditNote(),
+        'cap-nhat-ghi-chu' => (new SpecialNoteController())->UpdateNote(),
+        'xoa-ghi-chu' => (new SpecialNoteController())->DeleteNote(),
+        'cap-nhat-trang-thai-ghi-chu' => (new SpecialNoteController())->UpdateNoteStatus(),
+        'bao-cao-yeu-cau-dac-biet' => (new SpecialNoteController())->SpecialRequirementsReport(),
+        'xuat-bao-cao-yeu-cau-dac-biet' => (new SpecialNoteController())->ExportSpecialRequirementsPDF(),
+
+        // Báo cáo tài chính tour
+        'bao-cao-tour' => (new ReportController())->TourFinanceReport(),
+        'xuat-bao-cao-tour' => (new ReportController())->ExportTourFinance(),
+
+        // Quản lý báo giá
+        'danh-sach-bao-gia' => (new QuoteController())->ListQuotes(),
+        'tao-bao-gia' => (new QuoteController())->CreateQuoteForm(),
+        'luu-bao-gia' => (new QuoteController())->StoreQuote(),
+        'xem-bao-gia' => (new QuoteController())->ViewQuote(),
+        'xuat-bao-gia' => (new QuoteController())->ExportQuote(),
+        'cap-nhat-trang-thai-bao-gia' => (new QuoteController())->UpdateQuoteStatus(),
+        'xoa-bao-gia' => (new QuoteController())->DeleteQuote(),
 
         //auth
         'login' => (new AuthController())->login(),

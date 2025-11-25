@@ -23,9 +23,15 @@
                 <div class="card-header">
                     <h4 class="card-title">Thông tin lịch khởi hành</h4>
                     <?php if (isAdmin()): ?>
-                        <a href="?act=sua-lich-khoi-hanh&id=<?= $schedule['schedule_id'] ?>" class="btn btn-warning btn-sm">
-                            <i class="feather icon-edit"></i> Sửa thông tin
-                        </a>
+                        <?php if ($schedule['status'] === 'In Progress'): ?>
+                            <span class="badge badge-warning">
+                                <i class="feather icon-lock"></i> Đang diễn ra - Không thể chỉnh sửa
+                            </span>
+                        <?php else: ?>
+                            <a href="?act=sua-lich-khoi-hanh&id=<?= $schedule['schedule_id'] ?>" class="btn btn-warning btn-sm">
+                                <i class="feather icon-edit"></i> Sửa lịch
+                            </a>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
                 <div class="card-body">
@@ -78,12 +84,55 @@
                                             'Open' => 'badge-success',
                                             'Full' => 'badge-warning',
                                             'Confirmed' => 'badge-primary',
+                                            'In Progress' => 'badge-info',
                                             'Completed' => 'badge-secondary',
                                             'Cancelled' => 'badge-danger',
                                             default => 'badge-light'
                                         };
+                                        $statusText = match ($schedule['status']) {
+                                            'Open' => 'Mở đặt',
+                                            'Full' => 'Đầy',
+                                            'Confirmed' => 'Đã xác nhận',
+                                            'In Progress' => 'Đang diễn ra',
+                                            'Completed' => 'Hoàn thành',
+                                            'Cancelled' => 'Đã hủy',
+                                            default => $schedule['status']
+                                        };
                                         ?>
-                                        <span class="badge <?= $statusClass ?>"><?= $schedule['status'] ?></span>
+                                        <span class="badge <?= $statusClass ?>"><?= $statusText ?></span>
+                                        
+                                        <?php if (isAdmin()): ?>
+                                            <div class="btn-group ml-2" role="group">
+                                                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" 
+                                                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    <i class="feather icon-edit-2"></i> Đổi trạng thái
+                                                </button>
+                                                <div class="dropdown-menu">
+                                                    <?php if ($schedule['status'] !== 'In Progress'): ?>
+                                                        <a class="dropdown-item" href="#" onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'In Progress', 'Đang diễn ra')">
+                                                            <i class="feather icon-play-circle text-info"></i> Bắt đầu tour
+                                                        </a>
+                                                    <?php endif; ?>
+                                                    <?php if ($schedule['status'] === 'In Progress'): ?>
+                                                        <a class="dropdown-item" href="#" onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'Completed', 'Hoàn thành')">
+                                                            <i class="feather icon-check-circle text-success"></i> Hoàn thành tour
+                                                        </a>
+                                                    <?php endif; ?>
+                                                    <?php if ($schedule['status'] !== 'Cancelled' && $schedule['status'] !== 'In Progress'): ?>
+                                                        <a class="dropdown-item" href="#" onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'Cancelled', 'Hủy')">
+                                                            <i class="feather icon-x-circle text-danger"></i> Hủy tour
+                                                        </a>
+                                                    <?php endif; ?>
+                                                    <div class="dropdown-divider"></div>
+                                                    <a class="dropdown-item" href="#" onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'Open', 'Mở đặt')">
+                                                        <i class="feather icon-unlock text-success"></i> Mở đặt
+                                                    </a>
+                                                    <a class="dropdown-item" href="#" onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'Confirmed', 'Đã xác nhận')">
+                                                        <i class="feather icon-check text-primary"></i> Xác nhận
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             </table>
@@ -96,6 +145,32 @@
                     <?php endif; ?>
                 </div>
             </div>
+
+            <script>
+            function confirmChangeStatus(scheduleId, newStatus, statusName) {
+                if (confirm('Bạn có chắc chắn muốn chuyển trạng thái sang "' + statusName + '"?')) {
+                    var form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '?act=thay-doi-trang-thai-tour';
+                    
+                    var scheduleInput = document.createElement('input');
+                    scheduleInput.type = 'hidden';
+                    scheduleInput.name = 'schedule_id';
+                    scheduleInput.value = scheduleId;
+                    form.appendChild(scheduleInput);
+                    
+                    var statusInput = document.createElement('input');
+                    statusInput.type = 'hidden';
+                    statusInput.name = 'status';
+                    statusInput.value = newStatus;
+                    form.appendChild(statusInput);
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+                return false;
+            }
+            </script>
 
             <!-- Tab Navigation -->
             <ul class="nav nav-tabs" role="tablist">
@@ -118,11 +193,15 @@
                     <div class="card">
                         <div class="card-header">
                             <h4 class="card-title">Phân công nhân sự</h4>
-                            <?php if (isAdmin()): ?>
+                            <?php if (isAdmin() && count($staff) < 1): ?>
                                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                                     data-target="#addStaffModal">
                                     <i class="feather icon-user-plus"></i> Phân công nhân sự
                                 </button>
+                            <?php elseif (isAdmin() && count($staff) >= 1): ?>
+                                <span class="badge badge-success">
+                                    <i class="feather icon-check"></i> Đã phân công (tối đa 1 nhân sự/tour)
+                                </span>
                             <?php endif; ?>
                         </div>
                         <div class="card-body">
