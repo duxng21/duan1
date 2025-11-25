@@ -50,8 +50,6 @@
                                                     <select class="form-control" id="staff_type" name="staff_type"
                                                         required>
                                                         <option value="Guide" <?= $staff['staff_type'] == 'Guide' ? 'selected' : '' ?>>Hướng dẫn viên</option>
-                                                        <option value="Driver" <?= $staff['staff_type'] == 'Driver' ? 'selected' : '' ?>>Tài xế</option>
-                                                        <option value="Support" <?= $staff['staff_type'] == 'Support' ? 'selected' : '' ?>>Hỗ trợ</option>
                                                         <option value="Manager" <?= $staff['staff_type'] == 'Manager' ? 'selected' : '' ?>>Quản lý</option>
                                                     </select>
                                                 </div>

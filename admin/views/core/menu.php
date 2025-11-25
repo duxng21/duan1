@@ -104,6 +104,29 @@ function isActive($routes)
                     </li>
                 </ul>
             </li>
+            <?php if (function_exists('isAdmin') && isAdmin()): ?>
+                <li class="<?= isActive(['bao-cao-tour']) ?> nav-item"><a href="#"><i
+                            class="feather icon-bar-chart-2"></i><span class="menu-title" data-i18n="Báo cáo">Báo
+                            cáo</span></a>
+                    <ul class="menu-content">
+                        <li class="<?= isActive(['bao-cao-tour']) ? 'active' : '' ?>"><a href="?act=bao-cao-tour"><i
+                                    class="feather icon-circle"></i><span class="menu-item" data-i18n="Báo cáo tour">Báo cáo
+                                    tour</span></a></li>
+                    </ul>
+                </li>
+                <li class="<?= isActive(['danh-sach-bao-gia', 'tao-bao-gia', 'xem-bao-gia']) ?> nav-item"><a href="#"><i
+                            class="feather icon-file-text"></i><span class="menu-title" data-i18n="Báo giá">Báo
+                            giá</span></a>
+                    <ul class="menu-content">
+                        <li class="<?= isActive(['danh-sach-bao-gia']) ? 'active' : '' ?>"><a
+                                href="?act=danh-sach-bao-gia"><i class="feather icon-circle"></i><span class="menu-item"
+                                    data-i18n="Danh sách báo giá">Danh sách báo giá</span></a></li>
+                        <li class="<?= isActive(['tao-bao-gia']) ? 'active' : '' ?>"><a href="?act=tao-bao-gia"><i
+                                    class="feather icon-circle"></i><span class="menu-item" data-i18n="Tạo báo giá">Tạo báo
+                                    giá</span></a></li>
+                    </ul>
+                </li>
+            <?php endif; ?>
         </ul>
     </div>
     <li class="<?= isActive(['danh-sach-user', 'tao-user']) ?> nav-item"><a href="#"><i

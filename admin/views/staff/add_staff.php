@@ -51,8 +51,6 @@
                                                         required>
                                                         <option value="">-- Chọn loại --</option>
                                                         <option value="Guide">Hướng dẫn viên</option>
-                                                        <option value="Driver">Tài xế</option>
-                                                        <option value="Support">Hỗ trợ</option>
                                                         <option value="Manager">Quản lý</option>
                                                     </select>
                                                 </div>

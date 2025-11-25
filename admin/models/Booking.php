@@ -288,6 +288,7 @@ class Booking
 
     // ==================== XÓA BOOKING DETAIL ====================
 
+
     public function deleteBookingDetail($detail_id)
     {
         $sql = "DELETE FROM booking_details WHERE detail_id = ?";
@@ -304,4 +305,162 @@ class Booking
         $stmt = $this->conn->prepare($sql);
         return $stmt->execute([$booking_id, $service_name, $quantity, $unit_price]);
     }
+
+    // ==================== USE CASE 3: GUEST MANAGEMENT ====================
+
+    /**
+     * Lấy danh sách khách theo booking_id
+     */
+    public function getGuestsByBooking($booking_id, $filters = [])
+    {
+        $sql = "SELECT * FROM guest_list WHERE booking_id = ?";
+        $params = [$booking_id];
+
+        // A1: Filter theo check-in status
+        if (!empty($filters['check_in_status'])) {
+            $sql .= " AND check_in_status = ?";
+            $params[] = $filters['check_in_status'];
+        }
+
+        // Filter theo room
+        if (isset($filters['has_room'])) {
+            if ($filters['has_room']) {
+                $sql .= " AND room_number IS NOT NULL";
+            } else {
+                $sql .= " AND room_number IS NULL";
+            }
+        }
+
+        $sql .= " ORDER BY full_name ASC";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Lấy danh sách khách theo schedule_id
+     */
+    public function getGuestsBySchedule($schedule_id, $filters = [])
+    {
+        $sql = "SELECT gl.* 
+                FROM guest_list gl
+                JOIN tour_bookings tb ON gl.booking_id = tb.booking_id
+                WHERE tb.schedule_id = ?";
+        $params = [$schedule_id];
+
+        if (!empty($filters['check_in_status'])) {
+            $sql .= " AND gl.check_in_status = ?";
+            $params[] = $filters['check_in_status'];
+        }
+
+        if (isset($filters['has_room'])) {
+            if ($filters['has_room']) {
+                $sql .= " AND gl.room_number IS NOT NULL";
+            } else {
+                $sql .= " AND gl.room_number IS NULL";
+            }
+        }
+
+        $sql .= " ORDER BY gl.full_name ASC";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Lấy thông tin 1 guest
+     */
+    public function getGuestById($guest_id)
+    {
+        $sql = "SELECT * FROM guest_list WHERE guest_id = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$guest_id]);
+        return $stmt->fetch();
+    }
+
+    /**
+     * Cập nhật check-in status
+     */
+    public function updateCheckIn($guest_id, $status = 'Checked-In')
+    {
+        $sql = "UPDATE guest_list 
+                SET check_in_status = ?, 
+                    check_in_time = NOW() 
+                WHERE guest_id = ?";
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([$status, $guest_id]);
+    }
+
+    /**
+     * Phân phòng khách sạn
+     */
+    public function assignRoom($guest_id, $room_number)
+    {
+        $sql = "UPDATE guest_list 
+                SET room_number = ? 
+                WHERE guest_id = ?";
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([$room_number, $guest_id]);
+    }
+
+    /**
+     * Báo cáo tóm tắt đoàn
+     */
+    public function getGuestSummary($booking_id)
+    {
+        // Tổng số khách
+        $sql = "SELECT 
+                    COUNT(*) as total_guests,
+                    SUM(CASE WHEN gender = 'Male' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN gender = 'Female' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN is_adult = 1 THEN 1 ELSE 0 END) as adult_count,
+                    SUM(CASE WHEN is_adult = 0 THEN 1 ELSE 0 END) as child_count,
+                    SUM(CASE WHEN check_in_status = 'Checked-In' THEN 1 ELSE 0 END) as checked_in,
+                    SUM(CASE WHEN check_in_status = 'No-Show' THEN 1 ELSE 0 END) as no_show,
+                    SUM(CASE WHEN room_number IS NOT NULL THEN 1 ELSE 0 END) as room_assigned
+                FROM guest_list
+                WHERE booking_id = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$booking_id]);
+        return $stmt->fetch();
+    }
+
+    /**
+     * Báo cáo tóm tắt theo schedule
+     */
+    public function getGuestSummaryBySchedule($schedule_id)
+    {
+        $sql = "SELECT 
+                    COUNT(*) as total_guests,
+                    SUM(CASE WHEN gl.gender = 'Male' THEN 1 ELSE 0 END) as male_count,
+                    SUM(CASE WHEN gl.gender = 'Female' THEN 1 ELSE 0 END) as female_count,
+                    SUM(CASE WHEN gl.is_adult = 1 THEN 1 ELSE 0 END) as adult_count,
+                    SUM(CASE WHEN gl.is_adult = 0 THEN 1 ELSE 0 END) as child_count,
+                    SUM(CASE WHEN gl.check_in_status = 'Checked-In' THEN 1 ELSE 0 END) as checked_in,
+                    SUM(CASE WHEN gl.check_in_status = 'No-Show' THEN 1 ELSE 0 END) as no_show,
+                    SUM(CASE WHEN gl.room_number IS NOT NULL THEN 1 ELSE 0 END) as room_assigned
+                FROM guest_list gl
+                JOIN tour_bookings tb ON gl.booking_id = tb.booking_id
+                WHERE tb.schedule_id = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$schedule_id]);
+        return $stmt->fetch();
+    }
+
+    /**
+     * Lấy thông tin schedule
+     */
+    public function getScheduleInfo($schedule_id)
+    {
+        $sql = "SELECT ts.*, t.tour_name, t.code 
+                FROM tour_schedules ts
+                JOIN tours t ON ts.tour_id = t.tour_id
+                WHERE ts.schedule_id = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$schedule_id]);
+        return $stmt->fetch();
+    }
 }
+

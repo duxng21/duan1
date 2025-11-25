@@ -110,6 +110,7 @@
                                                                     'Open' => 'badge-success',
                                                                     'Full' => 'badge-warning',
                                                                     'Confirmed' => 'badge-primary',
+                                                                    'In Progress' => 'badge-info',
                                                                     'Completed' => 'badge-secondary',
                                                                     'Cancelled' => 'badge-danger',
                                                                     default => 'badge-light'
@@ -118,6 +119,7 @@
                                                                     'Open' => 'Mở',
                                                                     'Full' => 'Đầy',
                                                                     'Confirmed' => 'Đã xác nhận',
+                                                                    'In Progress' => 'Đang diễn ra',
                                                                     'Completed' => 'Hoàn thành',
                                                                     'Cancelled' => 'Đã hủy',
                                                                     default => $schedule['status']
@@ -131,19 +133,33 @@
                                                                     class="btn btn-info btn-sm" title="Chi tiết & Phân công">
                                                                     <i class="feather icon-eye"></i>
                                                                 </a>
-                                                                <a href="?act=sua-lich-khoi-hanh&id=<?= $schedule['schedule_id'] ?>"
-                                                                    class="btn btn-warning btn-sm" title="Sửa">
-                                                                    <i class="feather icon-edit"></i>
-                                                                </a>
+                                                                <?php if ($schedule['status'] !== 'In Progress'): ?>
+                                                                    <a href="?act=sua-lich-khoi-hanh&id=<?= $schedule['schedule_id'] ?>"
+                                                                        class="btn btn-warning btn-sm" title="Sửa">
+                                                                        <i class="feather icon-edit"></i>
+                                                                    </a>
+                                                                <?php else: ?>
+                                                                    <button class="btn btn-secondary btn-sm"
+                                                                        title="Không thể sửa khi tour đang diễn ra" disabled>
+                                                                        <i class="feather icon-lock"></i>
+                                                                    </button>
+                                                                <?php endif; ?>
                                                                 <a href="?act=xuat-bao-cao-lich&id=<?= $schedule['schedule_id'] ?>"
                                                                     class="btn btn-success btn-sm" title="Xuất báo cáo">
                                                                     <i class="feather icon-printer"></i>
                                                                 </a>
-                                                                <a onclick="return confirm('Xóa lịch này?')"
-                                                                    href="?act=xoa-lich-khoi-hanh&id=<?= $schedule['schedule_id'] ?>"
-                                                                    class="btn btn-danger btn-sm" title="Xóa">
-                                                                    <i class="feather icon-trash"></i>
-                                                                </a>
+                                                                <?php if ($schedule['status'] !== 'In Progress'): ?>
+                                                                    <a onclick="return confirm('Xóa lịch này?')"
+                                                                        href="?act=xoa-lich-khoi-hanh&id=<?= $schedule['schedule_id'] ?>"
+                                                                        class="btn btn-danger btn-sm" title="Xóa">
+                                                                        <i class="feather icon-trash"></i>
+                                                                    </a>
+                                                                <?php else: ?>
+                                                                    <button class="btn btn-secondary btn-sm"
+                                                                        title="Không thể xóa khi tour đang diễn ra" disabled>
+                                                                        <i class="feather icon-trash"></i>
+                                                                    </button>
+                                                                <?php endif; ?>
                                                             </td>
                                                         </tr>
                                                     <?php endforeach; ?>

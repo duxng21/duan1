@@ -56,7 +56,8 @@
                                             </dd>
                                             <dt class="col-sm-5">Ngày đặt:</dt>
                                             <dd class="col-sm-7">
-                                                <?= date('d/m/Y H:i', strtotime($booking['booking_date'])) ?></dd>
+                                                <?= date('d/m/Y H:i', strtotime($booking['booking_date'])) ?>
+                                            </dd>
                                             <dt class="col-sm-5">Tour:</dt>
                                             <dd class="col-sm-7">
                                                 <strong><?= htmlspecialchars($booking['tour_name']) ?></strong><br>
@@ -135,7 +136,8 @@
                                                         <td><?= htmlspecialchars($detail['service_name']) ?></td>
                                                         <td class="text-center"><?= $detail['quantity'] ?></td>
                                                         <td class="text-right">
-                                                            <?= number_format($detail['unit_price'], 0, ',', '.') ?> đ</td>
+                                                            <?= number_format($detail['unit_price'], 0, ',', '.') ?> đ
+                                                        </td>
                                                         <td class="text-right"><?= number_format($subtotal, 0, ',', '.') ?> đ
                                                         </td>
                                                     </tr>
@@ -223,7 +225,7 @@
                                 <h4 class="card-title"><i class="feather icon-settings"></i> Cập nhật trạng thái</h4>
                             </div>
                             <div class="card-body">
-                                <?php if ($booking['status'] != 'Hủy' && $booking['status'] != 'Hoàn tất'): ?>
+                                <?php if ($booking['status'] != 'Hủy' && $booking['status'] != 'Hoàn tất' && isset($canEdit) && $canEdit): ?>
                                     <form method="POST" action="?act=cap-nhat-trang-thai-booking" class="mb-3">
                                         <input type="hidden" name="booking_id" value="<?= $booking['booking_id'] ?>">
                                         <div class="form-group">
@@ -246,10 +248,15 @@
                                         </button>
                                     </form>
                                     <hr>
+                                <?php elseif (!isset($canEdit) || !$canEdit): ?>
+                                    <div class="alert alert-warning mb-3">
+                                        <i class="feather icon-alert-triangle"></i>
+                                        Bạn không có quyền chỉnh sửa booking này.
+                                    </div>
                                 <?php endif; ?>
 
                                 <div class="d-grid gap-2">
-                                    <?php if ($booking['status'] != 'Hủy' && $booking['status'] != 'Hoàn tất'): ?>
+                                    <?php if ($booking['status'] != 'Hủy' && $booking['status'] != 'Hoàn tất' && isset($canEdit) && $canEdit): ?>
                                         <a href="?act=sua-booking&id=<?= $booking['booking_id'] ?>"
                                             class="btn btn-warning btn-block mb-2">
                                             <i class="feather icon-edit"></i> Chỉnh sửa thông tin
@@ -261,6 +268,66 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- === Use Case 2: Lịch sử thay đổi booking === -->
+                        <?php if (!empty($bookingLogs)): ?>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title"><i class="feather icon-clock"></i> Lịch sử thay đổi</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="timeline">
+                                        <?php foreach ($bookingLogs as $log):
+                                            $details = json_decode($log['details'], true);
+                                            $actionText = match ($log['action']) {
+                                                'created' => 'Tạo booking',
+                                                'updated' => 'Cập nhật thông tin',
+                                                'status_changed' => 'Thay đổi trạng thái',
+                                                'cancelled' => 'Hủy booking',
+                                                default => $log['action']
+                                            };
+                                            ?>
+                                            <div class="timeline-item">
+                                                <div class="timeline-point timeline-point-indicator"></div>
+                                                <div class="timeline-event">
+                                                    <div
+                                                        class="d-flex justify-content-between flex-sm-row flex-column mb-sm-0 mb-1">
+                                                        <h6><?= htmlspecialchars($actionText) ?></h6>
+                                                        <span
+                                                            class="timeline-event-time"><?= date('d/m/Y H:i', strtotime($log['created_at'])) ?></span>
+                                                    </div>
+                                                    <p class="mb-0">
+                                                        <strong>Người thực hiện:</strong>
+                                                        <?= htmlspecialchars($log['user_name'] ?? 'Hệ thống') ?>
+                                                    </p>
+                                                    <?php if (!empty($details)): ?>
+                                                        <div class="text-muted small mt-1">
+                                                            <?php if (isset($details['changes']) && !empty($details['changes'])): ?>
+                                                                <strong>Thay đổi:</strong><br>
+                                                                <?php foreach ($details['changes'] as $field => $change): ?>
+                                                                    - <?= htmlspecialchars($field) ?>:
+                                                                    <span class="text-danger"><?= htmlspecialchars($change['old']) ?></span>
+                                                                    →
+                                                                    <span
+                                                                        class="text-success"><?= htmlspecialchars($change['new']) ?></span><br>
+                                                                <?php endforeach; ?>
+                                                            <?php elseif (isset($details['old_status']) && isset($details['new_status'])): ?>
+                                                                <strong>Trạng thái:</strong>
+                                                                <span
+                                                                    class="text-danger"><?= htmlspecialchars($details['old_status']) ?></span>
+                                                                →
+                                                                <span
+                                                                    class="text-success"><?= htmlspecialchars($details['new_status']) ?></span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </section>

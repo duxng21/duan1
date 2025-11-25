@@ -138,6 +138,12 @@ class TourSchedule
 
     public function updateSchedule($id, $data)
     {
+        // Kiểm tra trạng thái tour - không cho sửa khi đang diễn ra
+        $currentSchedule = $this->getScheduleById($id);
+        if ($currentSchedule && $currentSchedule['status'] === 'In Progress') {
+            throw new Exception("Không thể chỉnh sửa lịch khởi hành khi tour đang diễn ra! Vui lòng đợi tour hoàn thành.");
+        }
+
         // Kiểm tra trùng lịch (trừ chính nó)
         if ($this->checkScheduleConflict($data['tour_id'], $data['departure_date'], $id)) {
             throw new Exception("Đã có lịch khởi hành cho tour này vào ngày đã chọn!");
@@ -172,6 +178,12 @@ class TourSchedule
 
     public function deleteSchedule($id)
     {
+        // Kiểm tra trạng thái tour - không cho xóa khi đang diễn ra
+        $schedule = $this->getScheduleById($id);
+        if ($schedule && $schedule['status'] === 'In Progress') {
+            throw new Exception("Không thể xóa lịch khởi hành khi tour đang diễn ra! Vui lòng đợi tour hoàn thành.");
+        }
+
         // Kiểm tra xem có booking nào chưa
         $sql = "SELECT COUNT(*) FROM tour_bookings WHERE schedule_id = ?";
         $stmt = $this->conn->prepare($sql);
@@ -186,11 +198,44 @@ class TourSchedule
         return $stmt->execute([$id]);
     }
 
+    // Thay đổi trạng thái tour
+    public function changeScheduleStatus($schedule_id, $new_status)
+    {
+        $allowed_statuses = ['Open', 'Full', 'Confirmed', 'In Progress', 'Completed', 'Cancelled'];
+
+        if (!in_array($new_status, $allowed_statuses)) {
+            throw new Exception("Trạng thái không hợp lệ!");
+        }
+
+        // Kiểm tra lịch tồn tại
+        $schedule = $this->getScheduleById($schedule_id);
+        if (!$schedule) {
+            throw new Exception("Không tìm thấy lịch khởi hành!");
+        }
+
+        // Kiểm tra logic chuyển trạng thái
+        $current_status = $schedule['status'];
+
+        // Không cho phép chuyển từ Completed sang In Progress
+        if ($current_status === 'Completed' && $new_status === 'In Progress') {
+            throw new Exception("Không thể chuyển tour đã hoàn thành về đang diễn ra!");
+        }
+
+        // Không cho phép chuyển từ Cancelled sang In Progress
+        if ($current_status === 'Cancelled' && $new_status === 'In Progress') {
+            throw new Exception("Không thể bắt đầu tour đã bị hủy!");
+        }
+
+        $sql = "UPDATE tour_schedules SET status = ? WHERE schedule_id = ?";
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([$new_status, $schedule_id]);
+    }
+
     // ==================== NHÂN SỰ ====================
 
     public function getAllStaff($type = null)
     {
-        $sql = "SELECT * FROM staff WHERE status = 1";
+        $sql = "SELECT * FROM staff WHERE status = 1 AND staff_type IN ('Guide','Manager')";
         if ($type) {
             $sql .= " AND staff_type = ?";
             $stmt = $this->conn->prepare($sql);
@@ -244,7 +289,25 @@ class TourSchedule
 
     public function assignStaff($schedule_id, $staff_id, $role)
     {
-        // Kiểm tra xem nhân viên đã được phân công chưa
+        // Thử sửa khóa ngoại sai lệch (nếu vẫn trỏ về bảng cũ tour_itinerary_old)
+        $this->repairScheduleStaffForeignKeys();
+        // Kiểm tra schedule tồn tại (tránh FK lỗi nếu bảng/khóa ngoại lệch)
+        $chk = $this->conn->prepare("SELECT schedule_id FROM tour_schedules WHERE schedule_id = ? LIMIT 1");
+        $chk->execute([$schedule_id]);
+        if (!$chk->fetchColumn()) {
+            throw new Exception("Lịch khởi hành không tồn tại (schedule_id=" . (int) $schedule_id . ")");
+        }
+
+        // KIỂM TRA: Mỗi tour chỉ được phân công 1 nhân sự duy nhất
+        $sqlCheck = "SELECT COUNT(*) FROM schedule_staff WHERE schedule_id = ?";
+        $stmtCheck = $this->conn->prepare($sqlCheck);
+        $stmtCheck->execute([$schedule_id]);
+
+        if ($stmtCheck->fetchColumn() > 0) {
+            throw new Exception("Lịch khởi hành này đã có nhân sự được phân công! Mỗi tour chỉ được phân công 1 nhân sự duy nhất.");
+        }
+
+        // Kiểm tra xem nhân viên đã được phân công chưa (bổ sung)
         $sql = "SELECT COUNT(*) FROM schedule_staff 
                 WHERE schedule_id = ? AND staff_id = ?";
         $stmt = $this->conn->prepare($sql);
@@ -258,6 +321,60 @@ class TourSchedule
                 VALUES (?, ?, ?)";
         $stmt = $this->conn->prepare($sql);
         return $stmt->execute([$schedule_id, $staff_id, $role]);
+    }
+
+    // ==================== SỬA LỖI KHÓA NGOẠI TỰ ĐỘNG ====================
+    private function repairScheduleStaffForeignKeys()
+    {
+        try {
+            // Xác định database hiện tại
+            $dbName = DB_NAME;
+            // Lấy tất cả FK của bảng schedule_staff
+            $sql = "SELECT CONSTRAINT_NAME, REFERENCED_TABLE_NAME, COLUMN_NAME
+                    FROM information_schema.KEY_COLUMN_USAGE
+                    WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'schedule_staff' AND REFERENCED_TABLE_NAME IS NOT NULL";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([$dbName]);
+            $fks = $stmt->fetchAll();
+
+            $needsFix = false;
+            $wrongConstraints = [];
+            foreach ($fks as $fk) {
+                if ($fk['COLUMN_NAME'] === 'schedule_id' && $fk['REFERENCED_TABLE_NAME'] !== 'tour_schedules') {
+                    $needsFix = true;
+                    $wrongConstraints[] = $fk['CONSTRAINT_NAME'];
+                }
+                if ($fk['COLUMN_NAME'] === 'staff_id' && $fk['REFERENCED_TABLE_NAME'] !== 'staff') {
+                    $needsFix = true;
+                    $wrongConstraints[] = $fk['CONSTRAINT_NAME'];
+                }
+            }
+
+            if ($needsFix) {
+                foreach ($wrongConstraints as $cname) {
+                    $drop = $this->conn->prepare("ALTER TABLE schedule_staff DROP FOREIGN KEY `$cname`");
+                    try {
+                        $drop->execute();
+                    } catch (Exception $e) { /* ignore */
+                    }
+                }
+                // Đảm bảo cột tồn tại trước khi thêm FK
+                $checkCols = $this->conn->query("SHOW COLUMNS FROM schedule_staff LIKE 'schedule_id'")->fetch();
+                $checkCols2 = $this->conn->query("SHOW COLUMNS FROM schedule_staff LIKE 'staff_id'")->fetch();
+                if ($checkCols && $checkCols2) {
+                    // Thêm lại FK chuẩn (đặt tên rõ ràng để tránh trùng lặp)
+                    $this->conn->exec("ALTER TABLE schedule_staff
+                        ADD CONSTRAINT fk_schedule_staff_schedule
+                            FOREIGN KEY (schedule_id) REFERENCES tour_schedules(schedule_id)
+                            ON DELETE CASCADE ON UPDATE CASCADE,
+                        ADD CONSTRAINT fk_schedule_staff_staff
+                            FOREIGN KEY (staff_id) REFERENCES staff(staff_id)
+                            ON DELETE CASCADE ON UPDATE CASCADE");
+                }
+            }
+        } catch (Exception $e) {
+            // Bỏ qua nếu không thể sửa (không chặn luồng chính)
+        }
     }
 
     public function removeStaff($schedule_id, $staff_id)
@@ -342,6 +459,14 @@ class TourSchedule
 
     public function assignService($schedule_id, $service_id, $quantity, $unit_price, $notes)
     {
+        // Tự động sửa khóa ngoại sai trỏ về bảng cũ nếu còn tồn tại
+        $this->repairScheduleServicesForeignKeys();
+        // Kiểm tra schedule tồn tại để tránh lỗi FK
+        $chk = $this->conn->prepare("SELECT schedule_id FROM tour_schedules WHERE schedule_id = ? LIMIT 1");
+        $chk->execute([$schedule_id]);
+        if (!$chk->fetchColumn()) {
+            throw new Exception("Lịch khởi hành không tồn tại (schedule_id=" . (int) $schedule_id . ")");
+        }
         $sql = "INSERT INTO schedule_services (schedule_id, service_id, quantity, unit_price, notes) 
                 VALUES (?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE 
@@ -469,5 +594,48 @@ class TourSchedule
             'upcoming_schedules' => $upcomingCount,
             'total_assignments' => count($assignments)
         ];
+    }
+
+    // ==================== SỬA LỖI FK DỊCH VỤ ====================
+    private function repairScheduleServicesForeignKeys()
+    {
+        try {
+            $dbName = DB_NAME;
+            $sql = "SELECT CONSTRAINT_NAME, REFERENCED_TABLE_NAME, COLUMN_NAME
+                    FROM information_schema.KEY_COLUMN_USAGE
+                    WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'schedule_services' AND REFERENCED_TABLE_NAME IS NOT NULL";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([$dbName]);
+            $fks = $stmt->fetchAll();
+
+            $needsFix = false;
+            $wrong = [];
+            foreach ($fks as $fk) {
+                if ($fk['COLUMN_NAME'] === 'schedule_id' && $fk['REFERENCED_TABLE_NAME'] !== 'tour_schedules') {
+                    $needsFix = true;
+                    $wrong[] = $fk['CONSTRAINT_NAME'];
+                }
+            }
+            if ($needsFix) {
+                foreach ($wrong as $cname) {
+                    try {
+                        $this->conn->exec("ALTER TABLE schedule_services DROP FOREIGN KEY `$cname`");
+                    } catch (Exception $e) { /* ignore */
+                    }
+                }
+                $colCheck = $this->conn->query("SHOW COLUMNS FROM schedule_services LIKE 'schedule_id'")->fetch();
+                if ($colCheck) {
+                    try {
+                        $this->conn->exec("ALTER TABLE schedule_services
+                            ADD CONSTRAINT fk_schedule_services_schedule
+                            FOREIGN KEY (schedule_id) REFERENCES tour_schedules(schedule_id)
+                            ON DELETE CASCADE ON UPDATE CASCADE");
+                    } catch (Exception $e) { /* ignore */
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            // bỏ qua không chặn luồng chính
+        }
     }
 }

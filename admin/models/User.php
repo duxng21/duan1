@@ -22,22 +22,49 @@ class User
         $stmt->execute([$username]);
         return $stmt->fetchColumn() > 0;
     }
+    public function emailExists($email)
+    {
+        if ($email === null || $email === '')
+            return false;
+        $sql = 'SELECT COUNT(*) FROM users WHERE email = ?';
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$email]);
+        return $stmt->fetchColumn() > 0;
+    }
 
     public function create($data)
     {
+        // Pre-check duplicate email to avoid PDOException
+        if (isset($data['email']) && $this->emailExists($data['email'])) {
+            throw new Exception('Email đã tồn tại.');
+        }
         $sql = 'INSERT INTO users (username, password, full_name, email, phone, avatar, role_id, staff_id, status, login_attempts, last_login, created_at) VALUES (?,?,?,?,?,?,?,?,?,0,NULL,NOW())';
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute([
-            $data['username'],
-            $data['password'],
-            $data['full_name'],
-            $data['email'] ?? null,
-            $data['phone'] ?? null,
-            $data['avatar'] ?? null,
-            $data['role_id'],
-            $data['staff_id'],
-            $data['status'] ?? 'Active'
-        ]);
+        try {
+            $stmt->execute([
+                $data['username'],
+                $data['password'],
+                $data['full_name'],
+                $data['email'] ?? null,
+                $data['phone'] ?? null,
+                $data['avatar'] ?? null,
+                $data['role_id'],
+                $data['staff_id'],
+                $data['status'] ?? 'Active'
+            ]);
+        } catch (PDOException $e) {
+            // Graceful handling for duplicate keys (email/username)
+            if ($e->getCode() === '23000') {
+                $msg = $e->getMessage();
+                if (stripos($msg, 'email') !== false) {
+                    throw new Exception('Email đã tồn tại.');
+                }
+                if (stripos($msg, 'username') !== false) {
+                    throw new Exception('Username đã tồn tại.');
+                }
+            }
+            throw $e; // rethrow if different error
+        }
         return $this->conn->lastInsertId();
     }
 
