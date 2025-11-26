@@ -97,6 +97,13 @@ try {
         'hdv-checkin' => (new ScheduleController())->GuideCheckIn(),
         'hdv-luu-nhat-ky' => (new ScheduleController())->GuideSaveJourneyLog(),
 
+        // === Use Case 1: HDV Xem lịch trình tour và lịch làm việc ===
+        'hdv-lich-cua-toi' => (new ScheduleController())->MyTours(),
+        'hdv-chi-tiet-tour' => (new ScheduleController())->MyTourDetail(),
+        'hdv-nhiem-vu-cua-toi' => (new ScheduleController())->MyTasks(),
+        'hdv-xem-lich-thang' => (new ScheduleController())->MyCalendarView(),
+        'hdv-xuat-lich' => (new ScheduleController())->ExportMySchedule(),
+
         // Quản lý nhân sự
         'danh-sach-nhan-su' => (new StaffController())->ListStaff(),
         'them-nhan-su' => (new StaffController())->AddStaff(),

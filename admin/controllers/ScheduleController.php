@@ -474,4 +474,409 @@ class ScheduleController
         header('Location: ?act=chi-tiet-lich-khoi-hanh&id=' . $schedule_id);
         exit();
     }
+
+    // ==================== USE CASE 1: HDV VIEWS ====================
+
+    /**
+     * Danh sách tour được phân công cho HDV (lịch làm việc)
+     * Use Case 1: Bước 2, 3
+     */
+    public function MyTours()
+    {
+        requireLogin();
+        requireGuideRole('schedule.view_own');
+
+        $staff_id = $_SESSION['staff_id'] ?? null;
+        if (!$staff_id) {
+            $_SESSION['error'] = 'Không tìm thấy thông tin nhân viên!';
+            header('Location: ?act=/');
+            exit();
+        }
+
+        // Lọc theo các điều kiện (Use Case 1 - Bước 3a)
+        $filter_month = $_GET['month'] ?? null;
+        $filter_week = $_GET['week'] ?? null;
+        $filter_status = $_GET['status'] ?? null;
+        $filter_from_date = $_GET['from_date'] ?? null;
+        $filter_to_date = $_GET['to_date'] ?? null;
+
+        // Lấy danh sách các assignment của HDV
+        $modelStaff = new Staff();
+        $modelTour = new Tour();
+
+        // Tạo date range dựa trên filter
+        if ($filter_month) {
+            $month = intval($filter_month);
+            $year = intval($_GET['year'] ?? date('Y'));
+            $first_day = date('Y-m-d', mktime(0, 0, 0, $month, 1, $year));
+            $last_day = date('Y-m-d', mktime(0, 0, 0, $month + 1, 0, $year));
+            $from_date = $first_day;
+            $to_date = $last_day;
+        } elseif ($filter_week) {
+            $week = intval($filter_week);
+            $year = intval($_GET['year'] ?? date('Y'));
+            $week_date = new DateTime();
+            $week_date->setISODate($year, $week);
+            $from_date = $week_date->format('Y-m-d');
+            $to_date = $week_date->modify('+6 days')->format('Y-m-d');
+        } elseif ($filter_from_date && $filter_to_date) {
+            $from_date = $filter_from_date;
+            $to_date = $filter_to_date;
+        } else {
+            // Mặc định: từ hôm nay đến 1 năm sau
+            $from_date = date('Y-m-d');
+            $to_date = date('Y-m-d', strtotime('+1 year'));
+        }
+
+        // Lấy lịch trình của HDV trong khoảng thời gian
+        $assignments = $this->modelSchedule->getAllStaffAssignments([
+            'staff_id' => $staff_id,
+            'from_date' => $from_date,
+            'to_date' => $to_date
+        ]);
+
+        // Lọc theo status tour nếu có
+        if ($filter_status) {
+            $assignments = array_filter($assignments, function ($a) use ($filter_status) {
+                return $a['schedule_status'] === $filter_status;
+            });
+        }
+
+        // Nhóm các lịch trình thành danh sách tour duy nhất
+        $tours_data = [];
+        $tour_cache = [];
+
+        foreach ($assignments as $assignment) {
+            $tour_id = $assignment['tour_id'];
+            $schedule_id = $assignment['schedule_id'];
+
+            if (!isset($tour_cache[$tour_id])) {
+                $tour = $modelTour->getById($tour_id);
+                $tour_cache[$tour_id] = $tour;
+            }
+
+            $schedule = $this->modelSchedule->getScheduleById($schedule_id);
+
+            $key = $tour_id . '_' . $schedule_id;
+            $tours_data[$key] = [
+                'tour' => $tour_cache[$tour_id],
+                'schedule' => $schedule,
+                'assignment' => $assignment
+            ];
+        }
+
+        // E2: Nếu không có tour nào
+        if (empty($tours_data)) {
+            $no_tours_message = 'Hiện tại bạn chưa được phân công tour nào.';
+        } else {
+            $no_tours_message = null;
+        }
+
+        // Lấy các tour ngắn gọn để hiển thị (E2)
+        $tours = $tours_data;
+
+        require_once './views/schedule/my_tours_list.php';
+    }
+
+    /**
+     * Chi tiết tour dành cho HDV
+     * Use Case 1: Bước 4, 5
+     */
+    public function MyTourDetail()
+    {
+        requireLogin();
+        requireGuideRole('schedule.view_own');
+
+        $schedule_id = $_GET['id'] ?? null;
+        if (!$schedule_id) {
+            $_SESSION['error'] = 'Thiếu tham số schedule_id!';
+            header('Location: ?act=hdv-lich-cua-toi');
+            exit();
+        }
+
+        $staff_id = $_SESSION['staff_id'] ?? null;
+
+        // Kiểm tra HDV có được phân công schedule này không
+        $schedule = $this->modelSchedule->getScheduleById($schedule_id);
+        if (!$schedule) {
+            $_SESSION['error'] = 'Không tìm thấy lịch khởi hành!';
+            header('Location: ?act=hdv-lich-cua-toi');
+            exit();
+        }
+
+        // Kiểm tra quyền
+        $staff = $this->modelSchedule->getScheduleStaff($schedule_id);
+        $is_assigned = false;
+        foreach ($staff as $s) {
+            if ($s['staff_id'] == $staff_id) {
+                $is_assigned = true;
+                break;
+            }
+        }
+
+        if (!$is_assigned && !isAdmin()) {
+            $_SESSION['error'] = 'Bạn không được phân công cho lịch này!';
+            header('Location: ?act=hdv-lich-cua-toi');
+            exit();
+        }
+
+        // Lấy chi tiết tour (Use Case 1 - Bước 4b)
+        $modelTour = new Tour();
+        $modelTourDetail = new TourDetail();
+
+        $tour = $modelTour->getById($schedule['tour_id']);
+        $itineraries = $modelTourDetail->getItineraries($schedule['tour_id']);
+        $gallery = $modelTourDetail->getGallery($schedule['tour_id']);
+        $policies = $modelTourDetail->getPolicies($schedule['tour_id']);
+        $assigned_staff = $staff;
+
+        // Tính số ngày
+        $departure = new DateTime($schedule['departure_date']);
+        $return = new DateTime($schedule['return_date'] ?? $schedule['departure_date']);
+        $days_diff = $departure->diff($return)->days + 1;
+        $total_days = $days_diff;
+
+        require_once './views/schedule/tour_detail_hdv.php';
+    }
+
+    /**
+     * Xem nhiệm vụ của tôi
+     * Use Case 1: Bước 5
+     */
+    public function MyTasks()
+    {
+        requireLogin();
+        requireGuideRole('schedule.view_own');
+
+        $staff_id = $_SESSION['staff_id'] ?? null;
+        $schedule_id = $_GET['schedule_id'] ?? null;
+
+        if (!$schedule_id) {
+            $_SESSION['error'] = 'Thiếu tham số schedule_id!';
+            header('Location: ?act=hdv-lich-cua-toi');
+            exit();
+        }
+
+        // Kiểm tra HDV được phân công
+        $schedule = $this->modelSchedule->getScheduleById($schedule_id);
+        $staff = $this->modelSchedule->getScheduleStaff($schedule_id);
+        $is_assigned = false;
+        foreach ($staff as $s) {
+            if ($s['staff_id'] == $staff_id) {
+                $is_assigned = true;
+                break;
+            }
+        }
+
+        if (!$is_assigned && !isAdmin()) {
+            $_SESSION['error'] = 'Bạn không được phân công cho lịch này!';
+            header('Location: ?act=hdv-lich-cua-toi');
+            exit();
+        }
+
+        $modelTour = new Tour();
+        $tour = $modelTour->getById($schedule['tour_id']);
+
+        // Lấy danh sách nhiệm vụ (Use Case 1 - Bước 5a)
+        // Tạm thời, nhiệm vụ được lấy từ:
+        // 1. Tour itinerary
+        // 2. Special notes
+        // 3. Journey logs (ghi chú trong quá trình diễn ra)
+
+        $modelSpecialNote = new SpecialNote();
+        $special_notes = $modelSpecialNote->getNotesBySchedule($schedule_id);
+
+        $modelTourDetail = new TourDetail();
+        $itineraries = $modelTourDetail->getItineraries($schedule['tour_id']);
+
+        $journey_logs = $this->modelSchedule->getJourneyLogs($schedule_id);
+
+        // Xây dựng task list từ các nguồn
+        $tasks = [];
+
+        // Task từ tour itinerary
+        foreach ($itineraries as $iti) {
+            $tasks[] = [
+                'id' => 'iti_' . $iti['itinerary_id'],
+                'type' => 'Hướng dẫn đoàn',
+                'title' => 'Ngày ' . $iti['day_number'] . ': ' . $iti['title'],
+                'time' => 'Cả ngày',
+                'location' => '',
+                'responsible' => 'Hướng dẫn viên',
+                'description' => $iti['description'],
+                'status' => 'Pending'
+            ];
+        }
+
+        // Task từ special notes
+        foreach ($special_notes as $note) {
+            $tasks[] = [
+                'id' => 'note_' . $note['note_id'],
+                'type' => 'Ghi chú đặc biệt',
+                'title' => $note['title'] ?? 'Ghi chú từ quản lý',
+                'time' => $note['note_date'] ?? '',
+                'location' => '',
+                'responsible' => 'Quản lý',
+                'description' => $note['content'],
+                'status' => 'Pending'
+            ];
+        }
+
+        require_once './views/schedule/my_tasks.php';
+    }
+
+    /**
+     * Xem lịch tháng
+     * Use Case 1: Bước 6, Luồng phụ A2
+     */
+    public function MyCalendarView()
+    {
+        requireLogin();
+        requireGuideRole('schedule.view_own');
+
+        $staff_id = $_SESSION['staff_id'] ?? null;
+        $month = $_GET['month'] ?? date('m');
+        $year = $_GET['year'] ?? date('Y');
+
+        // Lấy danh sách lịch khởi hành trong tháng
+        $calendar_data = $this->modelSchedule->getCalendarView($month, $year);
+
+        // Lọc chỉ các tour được phân công cho HDV
+        $assignments = $this->modelSchedule->getAllStaffAssignments([
+            'staff_id' => $staff_id,
+            'from_date' => date('Y-m-d', mktime(0, 0, 0, $month, 1, $year)),
+            'to_date' => date('Y-m-d', mktime(0, 0, 0, $month + 1, 0, $year))
+        ]);
+
+        $assigned_schedule_ids = array_column($assignments, 'schedule_id');
+
+        // Lọc calendar_data theo assigned_schedule_ids
+        $calendar_data = array_filter($calendar_data, function ($item) use ($assigned_schedule_ids) {
+            return in_array($item['schedule_id'], $assigned_schedule_ids);
+        });
+
+        // Xây dựng mảng ngày -> danh sách tour
+        $calendar_events = [];
+        foreach ($calendar_data as $schedule) {
+            $day = (int) date('d', strtotime($schedule['departure_date']));
+            if (!isset($calendar_events[$day])) {
+                $calendar_events[$day] = [];
+            }
+            $calendar_events[$day][] = $schedule;
+        }
+
+        require_once './views/schedule/calendar_view_hdv.php';
+    }
+
+    /**
+     * Xuất lịch trình
+     * Use Case 1: Bước 7, Luồng phụ A3
+     */
+    public function ExportMySchedule()
+    {
+        requireLogin();
+        requireGuideRole('schedule.view_own');
+
+        $format = $_GET['format'] ?? 'pdf';
+        $schedule_id = $_GET['schedule_id'] ?? null;
+
+        if (!$schedule_id) {
+            $_SESSION['error'] = 'Thiếu tham số schedule_id!';
+            header('Location: ?act=hdv-lich-cua-toi');
+            exit();
+        }
+
+        $staff_id = $_SESSION['staff_id'] ?? null;
+
+        // Kiểm tra quyền
+        $schedule = $this->modelSchedule->getScheduleById($schedule_id);
+        $staff = $this->modelSchedule->getScheduleStaff($schedule_id);
+        $is_assigned = false;
+        foreach ($staff as $s) {
+            if ($s['staff_id'] == $staff_id) {
+                $is_assigned = true;
+                break;
+            }
+        }
+
+        if (!$is_assigned && !isAdmin()) {
+            $_SESSION['error'] = 'Bạn không được phép xuất lịch này!';
+            header('Location: ?act=hdv-lich-cua-toi');
+            exit();
+        }
+
+        try {
+            $modelTour = new Tour();
+            $modelTourDetail = new TourDetail();
+            $tour = $modelTour->getById($schedule['tour_id']);
+            $itineraries = $modelTourDetail->getItineraries($schedule['tour_id']);
+
+            if ($format === 'excel') {
+                $this->exportScheduleToExcel($schedule, $tour, $itineraries);
+            } else {
+                $this->exportScheduleToPDF($schedule, $tour, $itineraries);
+            }
+        } catch (Exception $e) {
+            // E4: Lỗi khi tải xuống
+            $_SESSION['error'] = 'Tải xuống thất bại: ' . $e->getMessage();
+            header('Location: ?act=hdv-chi-tiet-tour&id=' . $schedule_id);
+            exit();
+        }
+    }
+
+    /**
+     * Xuất sang PDF
+     */
+    private function exportScheduleToPDF($schedule, $tour, $itineraries)
+    {
+        // Sử dụng thư viện TCPDF hoặc tương tự
+        // Tạm thời: xuất HTML với header để in
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="lich-tour-' . $schedule['schedule_id'] . '.pdf"');
+
+        echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Lịch tour</title></head><body>';
+        echo '<h1>' . htmlspecialchars($tour['tour_name']) . '</h1>';
+        echo '<p>Mã tour: ' . htmlspecialchars($tour['code']) . '</p>';
+        echo '<p>Khởi hành: ' . $schedule['departure_date'] . '</p>';
+        echo '<p>Kết thúc: ' . ($schedule['return_date'] ?? $schedule['departure_date']) . '</p>';
+        echo '<h3>Lịch trình:</h3>';
+        echo '<ul>';
+        foreach ($itineraries as $iti) {
+            echo '<li><strong>Ngày ' . $iti['day_number'] . ': ' . $iti['title'] . '</strong><br>';
+            echo $iti['description'] . '</li>';
+        }
+        echo '</ul>';
+        echo '</body></html>';
+        exit();
+    }
+
+    /**
+     * Xuất sang Excel
+     */
+    private function exportScheduleToExcel($schedule, $tour, $itineraries)
+    {
+        header('Content-Type: application/vnd.ms-excel');
+        header('Content-Disposition: attachment; filename="lich-tour-' . $schedule['schedule_id'] . '.xls"');
+
+        echo "<table border='1'>";
+        echo "<tr><td colspan='2'><b>LỊCH TOUR</b></td></tr>";
+        echo "<tr><td>Tên tour:</td><td>" . htmlspecialchars($tour['tour_name']) . "</td></tr>";
+        echo "<tr><td>Mã tour:</td><td>" . htmlspecialchars($tour['code']) . "</td></tr>";
+        echo "<tr><td>Khởi hành:</td><td>" . $schedule['departure_date'] . "</td></tr>";
+        echo "<tr><td>Kết thúc:</td><td>" . ($schedule['return_date'] ?? $schedule['departure_date']) . "</td></tr>";
+        echo "</table><br>";
+
+        echo "<table border='1'>";
+        echo "<tr><td><b>Ngày</b></td><td><b>Hoạt động</b></td><td><b>Mô tả</b></td><td><b>Nơi ở</b></td></tr>";
+        foreach ($itineraries as $iti) {
+            echo "<tr>";
+            echo "<td>Ngày " . $iti['day_number'] . "</td>";
+            echo "<td>" . htmlspecialchars($iti['title']) . "</td>";
+            echo "<td>" . htmlspecialchars($iti['description']) . "</td>";
+            echo "<td>" . htmlspecialchars($iti['accommodation']) . "</td>";
+            echo "</tr>";
+        }
+        echo "</table>";
+        exit();
+    }
 }
