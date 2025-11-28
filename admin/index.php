@@ -24,6 +24,7 @@ require_once './controllers/BookingController.php';
 require_once './controllers/ReportController.php';
 require_once './controllers/QuoteController.php';
 require_once './controllers/SpecialNoteController.php';
+require_once './controllers/GuestController.php';
 require_once './controllers/PartnerController.php';
 require_once './controllers/ServiceController.php';
 
@@ -38,6 +39,7 @@ require_once './models/User.php'; // Needed for AuthController
 require_once './models/Report.php';
 require_once './models/Quote.php';
 require_once './models/SpecialNote.php';
+require_once './models/Guest.php';
 require_once './models/Partner.php';
 require_once './models/Service.php';
 // require_once './models/ProductModel.php';
@@ -158,13 +160,15 @@ try {
         'huy-booking' => (new BookingController())->CancelBooking(),
         'in-phieu-booking' => (new BookingController())->PrintBooking(),
 
-        // Use Case 3: Quản lý danh sách khách & Check-in
-        'danh-sach-khach' => (new BookingController())->ViewGuestList(),
-        'check-in-khach' => (new BookingController())->CheckInGuest(),
-        'phan-phong-khach' => (new BookingController())->AssignRoom(),
-        'xuat-danh-sach-doan' => (new BookingController())->ExportGuestListPDF(),
-        'bao-cao-doan' => (new BookingController())->GuestSummaryReport(),
-        'xuat-danh-sach-da-check-in' => (new BookingController())->ExportCheckedInGuests(),
+        // Use Case 3: Quản lý danh sách khách & Check-in đoàn
+        'danh-sach-khach' => (new GuestController())->ListGuests(),
+        'them-khach' => (new GuestController())->AddGuest(),
+        'luu-khach' => (new GuestController())->StoreGuest(),
+        'checkin-khach' => (new GuestController())->CheckIn(),
+        'phan-phong' => (new GuestController())->AssignRoom(),
+        'in-danh-sach-khach' => (new GuestController())->PrintGuestList(),
+        'bao-cao-khach' => (new GuestController())->SummaryReport(),
+        'xuat-khach-checkin' => (new GuestController())->ExportCheckedInGuests(),
 
         // Use Case 4: Quản lý ghi chú đặc biệt
         'ghi-chu-dac-biet' => (new SpecialNoteController())->ListNotesBySchedule(),
