@@ -32,12 +32,30 @@ function isActive($routes)
                         class="feather icon-home""></i><span class=" menu-title" data-i18n="Dashboard">Bảng điều
                         khiển</span></a>
             </li>
-            <div class="mt-1">
-                <a href="?act=danh-sach-user" class="btn btn-sm btn-outline-info"><i class="feather icon-users"></i>
-                    Users</a>
-                <a href="?act=tao-user" class="btn btn-sm btn-outline-success"><i
-                        class="feather icon-user-plus"></i></a>
-            </div>
+            <li class=" navigation-header"><span>USERS</span>
+            </li>
+            <li class="<?= isActive(['danh-sach-user', 'tao-user']) ?> nav-item">
+                <a href="#">
+                    <i class="feather icon-users"></i>
+                    <span class="menu-title" data-i18n="Quản lý User">Quản lý User</span>
+                </a>
+
+                <ul class="menu-content">
+                    <li class="<?= isActive(['danh-sach-user']) ? 'active' : '' ?>">
+                        <a href="?act=danh-sach-user">
+                            <i class="feather icon-circle"></i>
+                            <span class="menu-item" data-i18n="Users">Users</span>
+                        </a>
+                    </li>
+
+                    <li class="<?= isActive(['tao-user']) ? 'active' : '' ?>">
+                        <a href="?act=tao-user">
+                            <i class="feather icon-circle"></i>
+                            <span class="menu-item" data-i18n="Tạo User">Tạo User</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
             <li class=" navigation-header"><span>CHỨC NĂNG</span>
             </li>
             <li class="<?= isActive(['menu-tour', 'list-tour']) ?> nav-item"><a href="#"><i
@@ -129,20 +147,5 @@ function isActive($routes)
             <?php endif; ?>
         </ul>
     </div>
-    <li class="<?= isActive(['danh-sach-user', 'tao-user']) ?> nav-item"><a href="#"><i
-                class="feather icon-user"></i><span class="menu-title" data-i18n="Quản lý User">Quản lý User</span></a>
-        <ul class="menu-content">
-            <li class="<?= isActive(['danh-sach-user']) ? 'active' : '' ?>"><a href="?act=danh-sach-user"><i
-                        class="feather icon-circle"></i><span class="menu-item">Danh sách User</span></a></li>
-            <li class="<?= isActive(['tao-user']) ? 'active' : '' ?>"><a href="?act=tao-user"><i
-                        class="feather icon-circle"></i><span class="menu-item">Tạo User</span></a></li>
-        </ul>
-    </li>
 </div>
 <!-- END: Main Menu-->
-
-<div class="p-1 text-center small">
-    <a href="?act=doi-mat-khau" class="btn btn-sm btn-outline-primary mb-1"><i class="feather icon-lock"></i> Đổi mật
-        <div class="p-1 text-center small border-top">
-            <a href="?act=logout" class="btn btn-sm btn-outline-danger" onclick="return confirm('Đăng xuất?');"><i
-                    class="feather icon-power"></i> Đăng xuất</a>
