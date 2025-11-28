@@ -24,20 +24,27 @@
                 </div>
             </div>
             <div class="content-header-right text-md-right col-md-3 col-12">
-                <!-- Actions -->
+                <!-- Bước 2: Actor in danh sách đoàn -->
                 <div class="btn-group">
-                    <a href="?act=xuat-danh-sach-doan&booking_id=<?= $booking_id ?? '' ?>&schedule_id=<?= $schedule_id ?? '' ?>"
+                    <a href="?act=in-danh-sach-khach&booking_id=<?= $booking_id ?? '' ?>&schedule_id=<?= $schedule_id ?? '' ?>"
                         class="btn btn-primary" target="_blank">
                         <i class="feather icon-printer"></i> In danh sách
                     </a>
-                    <a href="?act=bao-cao-doan&booking_id=<?= $booking_id ?? '' ?>&schedule_id=<?= $schedule_id ?? '' ?>"
+                    <!-- Bước 5: Báo cáo tóm tắt đoàn -->
+                    <a href="?act=bao-cao-khach&booking_id=<?= $booking_id ?? '' ?>&schedule_id=<?= $schedule_id ?? '' ?>"
                         class="btn btn-info">
                         <i class="feather icon-bar-chart"></i> Báo cáo
                     </a>
-                    <a href="?act=xuat-danh-sach-da-check-in&booking_id=<?= $booking_id ?? '' ?>&schedule_id=<?= $schedule_id ?? '' ?>"
+                    <!-- A2: Xuất danh sách khách đã check-in -->
+                    <a href="?act=xuat-khach-checkin&format=excel&booking_id=<?= $booking_id ?? '' ?>&schedule_id=<?= $schedule_id ?? '' ?>"
                         class="btn btn-success">
                         <i class="feather icon-download"></i> Xuất đã check-in
                     </a>
+                    <?php if (isset($booking_id)): ?>
+                    <a href="?act=them-khach&booking_id=<?= $booking_id ?>" class="btn btn-warning">
+                        <i class="feather icon-user-plus"></i> Thêm khách
+                    </a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -220,20 +227,34 @@
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
-                                                    <!-- Check-in Button -->
-                                                    <?php if ($guest['check_in_status'] == 'Pending'): ?>
-                                                        <form method="POST" action="?act=check-in-khach" style="display:inline;">
+                                                    <!-- Bước 3: HDV thực hiện check-in -->
+                                                    <?php if ($guest['check_in_status'] != 'Checked-In'): ?>
+                                                        <form method="POST" action="?act=checkin-khach" style="display:inline;">
                                                             <input type="hidden" name="guest_id" value="<?= $guest['guest_id'] ?>">
                                                             <input type="hidden" name="booking_id" value="<?= $booking_id ?? '' ?>">
-                                                            <input type="hidden" name="status" value="Checked-In">
+                                                            <input type="hidden" name="schedule_id" value="<?= $schedule_id ?? '' ?>">
+                                                            <input type="hidden" name="check_in_status" value="Checked-In">
                                                             <button type="submit" class="btn btn-success btn-sm"
-                                                                onclick="return confirm('Xác nhận check-in?')">
+                                                                onclick="return confirm('Xác nhận check-in cho <?= htmlspecialchars($guest['full_name']) ?>?')">
                                                                 <i class="feather icon-check"></i> Check-in
                                                             </button>
                                                         </form>
                                                     <?php endif; ?>
 
-                                                    <!-- Assign Room Button -->
+                                                    <?php if ($guest['check_in_status'] != 'No-Show' && $guest['check_in_status'] != 'Checked-In'): ?>
+                                                        <form method="POST" action="?act=checkin-khach" style="display:inline;">
+                                                            <input type="hidden" name="guest_id" value="<?= $guest['guest_id'] ?>">
+                                                            <input type="hidden" name="booking_id" value="<?= $booking_id ?? '' ?>">
+                                                            <input type="hidden" name="schedule_id" value="<?= $schedule_id ?? '' ?>">
+                                                            <input type="hidden" name="check_in_status" value="No-Show">
+                                                            <button type="submit" class="btn btn-danger btn-sm"
+                                                                onclick="return confirm('Đánh dấu vắng mặt cho <?= htmlspecialchars($guest['full_name']) ?>?')">
+                                                                <i class="feather icon-x"></i> Vắng mặt
+                                                            </button>
+                                                        </form>
+                                                    <?php endif; ?>
+
+                                                    <!-- Bước 4: Phân phòng khách sạn -->
                                                     <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
                                                         data-target="#roomModal<?= $guest['guest_id'] ?>">
                                                         <i class="feather icon-home"></i> Phòng
@@ -251,20 +272,33 @@
                                                                         <span>&times;</span>
                                                                     </button>
                                                                 </div>
-                                                                <form method="POST" action="?act=phan-phong-khach">
+                                                                <form method="POST" action="?act=phan-phong">
                                                                     <div class="modal-body">
                                                                         <input type="hidden" name="guest_id"
                                                                             value="<?= $guest['guest_id'] ?>">
                                                                         <input type="hidden" name="booking_id"
                                                                             value="<?= $booking_id ?? '' ?>">
+                                                                        <input type="hidden" name="schedule_id"
+                                                                            value="<?= $schedule_id ?? '' ?>">
                                                                         <div class="form-group">
                                                                             <label>Số phòng *</label>
                                                                             <input type="text" name="room_number"
                                                                                 class="form-control"
                                                                                 value="<?= htmlspecialchars($guest['room_number'] ?? '') ?>"
-                                                                                placeholder="VD: 301, 405..." required>
-                                                                            <small class="text-muted">Nhập số phòng khách
-                                                                                sạn</small>
+                                                                                placeholder="VD: 101, A201, B305..." required>
+                                                                            <small class="text-muted">Nhập số phòng khách sạn</small>
+                                                                        </div>
+                                                                        <div class="form-group">
+                                                                            <label>Loại phòng</label>
+                                                                            <select name="room_type" class="form-control">
+                                                                                <option value="Standard" <?= ($guest['room_type'] ?? '') == 'Standard' ? 'selected' : '' ?>>Standard</option>
+                                                                                <option value="Deluxe" <?= ($guest['room_type'] ?? '') == 'Deluxe' ? 'selected' : '' ?>>Deluxe</option>
+                                                                                <option value="Suite" <?= ($guest['room_type'] ?? '') == 'Suite' ? 'selected' : '' ?>>Suite</option>
+                                                                                <option value="Single" <?= ($guest['room_type'] ?? '') == 'Single' ? 'selected' : '' ?>>Đơn</option>
+                                                                                <option value="Double" <?= ($guest['room_type'] ?? '') == 'Double' ? 'selected' : '' ?>>Đôi</option>
+                                                                                <option value="Twin" <?= ($guest['room_type'] ?? '') == 'Twin' ? 'selected' : '' ?>>Twin</option>
+                                                                                <option value="Family" <?= ($guest['room_type'] ?? '') == 'Family' ? 'selected' : '' ?>>Gia đình</option>
+                                                                            </select>
                                                                         </div>
                                                                     </div>
                                                                     <div class="modal-footer">
