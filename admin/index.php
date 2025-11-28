@@ -160,14 +160,25 @@ try {
         'xuat-khach-checkin' => (new GuestController())->ExportCheckedInGuests(),
 
         // Use Case 4: Quản lý ghi chú đặc biệt
+        'dashboard-ghi-chu' => (new SpecialNoteController())->Dashboard(),
+        'quan-ly-ghi-chu-dac-biet' => (new SpecialNoteController())->ManageSpecialNotes(),
         'ghi-chu-dac-biet' => (new SpecialNoteController())->ListNotesBySchedule(),
+        'danh-sach-ghi-chu-booking' => (new SpecialNoteController())->ListNotesByBooking(),
         'them-ghi-chu' => (new SpecialNoteController())->CreateNote(),
         'sua-ghi-chu' => (new SpecialNoteController())->EditNote(),
         'cap-nhat-ghi-chu' => (new SpecialNoteController())->UpdateNote(),
         'xoa-ghi-chu' => (new SpecialNoteController())->DeleteNote(),
         'cap-nhat-trang-thai-ghi-chu' => (new SpecialNoteController())->UpdateNoteStatus(),
+        'sao-chep-ghi-chu-truoc' => (new SpecialNoteController())->CopyNotesFromPreviousBooking(),
+        
+        // Báo cáo và thông báo ghi chú đặc biệt
         'bao-cao-yeu-cau-dac-biet' => (new SpecialNoteController())->SpecialRequirementsReport(),
-        'xuat-bao-cao-yeu-cau-dac-biet' => (new SpecialNoteController())->ExportSpecialRequirementsPDF(),
+        'xuat-pdf-yeu-cau-dac-biet' => (new SpecialNoteController())->ExportSpecialRequirementsPDF(),
+        'in-yeu-cau-dac-biet' => (new SpecialNoteController())->PrintSpecialRequirements(),
+        'bao-cao-hieu-qua-phuc-vu' => (new SpecialNoteController())->ServiceEfficiencyReport(),
+        'gui-nhac-nho-truoc-tour' => (new SpecialNoteController())->SendPreTourReminder(),
+        'danh-dau-da-doc' => (new SpecialNoteController())->MarkNotificationRead(),
+        'dem-thong-bao-chua-doc' => (new SpecialNoteController())->GetUnreadCount(),
 
         // Báo cáo tài chính tour
         'bao-cao-tour' => (new ReportController())->TourFinanceReport(),

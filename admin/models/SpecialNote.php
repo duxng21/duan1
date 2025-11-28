@@ -404,4 +404,273 @@ class SpecialNote
         $stmt->execute([$user_id]);
         return $stmt->fetchAll();
     }
+
+    /**
+     * Lấy thống kê tổng quan hệ thống
+     */
+    public function getOverallStatistics()
+    {
+        $sql = "SELECT 
+                    COUNT(*) as total_notes,
+                    SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending_notes,
+                    SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) as resolved_notes,
+                    SUM(CASE WHEN priority_level = 'High' THEN 1 ELSE 0 END) as high_priority,
+                    AVG(CASE WHEN resolved_at IS NOT NULL 
+                        THEN TIMESTAMPDIFF(HOUR, created_at, resolved_at) 
+                        ELSE NULL END) as avg_resolution_hours,
+                    COUNT(DISTINCT booking_id) as affected_bookings,
+                    COUNT(DISTINCT guest_id) as affected_guests
+                FROM guest_special_notes 
+                WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
+
+    /**
+     * Lấy danh sách ghi chú ưu tiên cao chưa xử lý
+     */
+    public function getUrgentNotes()
+    {
+        $sql = "SELECT 
+                    gsn.*,
+                    gl.full_name,
+                    gl.phone,
+                    tb.booking_code,
+                    ts.departure_date,
+                    t.tour_name,
+                    u.full_name as creator_name,
+                    TIMESTAMPDIFF(HOUR, gsn.created_at, NOW()) as hours_pending
+                FROM guest_special_notes gsn
+                INNER JOIN guest_list gl ON gsn.guest_id = gl.guest_id
+                INNER JOIN tour_bookings tb ON gsn.booking_id = tb.booking_id
+                INNER JOIN tour_schedules ts ON tb.schedule_id = ts.schedule_id
+                INNER JOIN tours t ON ts.tour_id = t.tour_id
+                LEFT JOIN users u ON gsn.created_by = u.user_id
+                WHERE gsn.priority_level = 'High' 
+                AND gsn.status IN ('Pending', 'Acknowledged')
+                AND ts.departure_date >= CURDATE()
+                ORDER BY gsn.created_at ASC
+                LIMIT 10";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Lấy báo cáo hiệu quả xử lý theo tháng
+     */
+    public function getMonthlyEfficiencyReport()
+    {
+        $sql = "SELECT 
+                    DATE_FORMAT(created_at, '%Y-%m') as month,
+                    COUNT(*) as total_notes,
+                    SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) as resolved_notes,
+                    ROUND(SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as resolution_rate,
+                    AVG(CASE WHEN resolved_at IS NOT NULL 
+                        THEN TIMESTAMPDIFF(HOUR, created_at, resolved_at) 
+                        ELSE NULL END) as avg_resolution_hours
+                FROM guest_special_notes 
+                WHERE created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+                GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+                ORDER BY month DESC";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Lấy báo cáo hiệu quả phục vụ đặc biệt sau tour
+     */
+    public function getServiceEfficiencyReport($schedule_id)
+    {
+        $sql = "SELECT 
+                    COUNT(*) as total_special_requests,
+                    SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) as fulfilled_requests,
+                    ROUND(SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as fulfillment_rate,
+                    AVG(CASE WHEN resolved_at IS NOT NULL 
+                        THEN TIMESTAMPDIFF(HOUR, created_at, resolved_at) 
+                        ELSE NULL END) as avg_response_time,
+                    GROUP_CONCAT(DISTINCT note_type) as service_categories,
+                    SUM(CASE WHEN priority_level = 'High' AND status = 'Resolved' THEN 1 ELSE 0 END) as critical_resolved,
+                    COUNT(DISTINCT guest_id) as guests_served
+                FROM guest_special_notes gsn
+                INNER JOIN tour_bookings tb ON gsn.booking_id = tb.booking_id
+                WHERE tb.schedule_id = ?";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$schedule_id]);
+        return $stmt->fetch();
+    }
+
+    /**
+     * Gửi thông báo nhắc nhở trước tour
+     */
+    public function sendPreTourReminder($schedule_id)
+    {
+        try {
+            // Lấy tất cả ghi chú chưa hoàn thành của schedule
+            $sql = "SELECT DISTINCT gsn.note_id 
+                    FROM guest_special_notes gsn
+                    INNER JOIN tour_bookings tb ON gsn.booking_id = tb.booking_id
+                    WHERE tb.schedule_id = ? AND gsn.status != 'Resolved'";
+
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([$schedule_id]);
+            $notes = $stmt->fetchAll();
+
+            if (empty($notes)) {
+                return false;
+            }
+
+            // Gửi thông báo nhắc nhở cho từng ghi chú
+            $success_count = 0;
+            foreach ($notes as $note) {
+                // Tạo thông báo nhắc nhở
+                $this->sendNotifications($note['note_id'], null, 'reminder');
+                $success_count++;
+            }
+
+            return $success_count;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Đếm số thông báo chưa đọc
+     */
+    public function getUnreadNotificationCount($user_id)
+    {
+        $sql = "SELECT COUNT(*) as count 
+                FROM special_note_notifications 
+                WHERE recipient_id = ? AND is_read = 0";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$user_id]);
+        $result = $stmt->fetch();
+        
+        return $result['count'] ?? 0;
+    }
+
+    /**
+     * Sao chép ghi chú từ booking trước (cho khách quen)
+     */
+    public function copyNotesFromPreviousBooking($guest_id, $current_booking_id, $previous_booking_id, $created_by)
+    {
+        try {
+            // Lấy ghi chú từ booking trước
+            $sql = "SELECT note_type, note_content, priority_level 
+                    FROM guest_special_notes 
+                    WHERE guest_id = ? AND booking_id = ?";
+
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([$guest_id, $previous_booking_id]);
+            $previous_notes = $stmt->fetchAll();
+
+            if (empty($previous_notes)) {
+                return 0;
+            }
+
+            // Sao chép từng ghi chú
+            $insert_sql = "INSERT INTO guest_special_notes 
+                          (guest_id, booking_id, note_type, note_content, priority_level, created_by, status)
+                          VALUES (?, ?, ?, ?, ?, ?, 'Pending')";
+
+            $insert_stmt = $this->conn->prepare($insert_sql);
+            $copied_count = 0;
+
+            foreach ($previous_notes as $note) {
+                $result = $insert_stmt->execute([
+                    $guest_id,
+                    $current_booking_id,
+                    $note['note_type'],
+                    $note['note_content'] . ' (Sao chép từ booking trước)',
+                    $note['priority_level'],
+                    $created_by
+                ]);
+
+                if ($result) {
+                    $note_id = $this->conn->lastInsertId();
+                    // Gửi thông báo cho ghi chú mới
+                    $this->sendNotifications($note_id, $current_booking_id);
+                    $copied_count++;
+                }
+            }
+
+            return $copied_count;
+        } catch (Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Lấy lịch sử ghi chú của khách (tất cả booking)
+     */
+    public function getGuestNoteHistory($guest_id, $limit = 10)
+    {
+        $sql = "SELECT 
+                    gsn.*,
+                    tb.booking_code,
+                    ts.departure_date,
+                    t.tour_name,
+                    u.full_name as creator_name
+                FROM guest_special_notes gsn
+                INNER JOIN tour_bookings tb ON gsn.booking_id = tb.booking_id
+                INNER JOIN tour_schedules ts ON tb.schedule_id = ts.schedule_id
+                INNER JOIN tours t ON ts.tour_id = t.tour_id
+                LEFT JOIN users u ON gsn.created_by = u.user_id
+                WHERE gsn.guest_id = ?
+                ORDER BY gsn.created_at DESC
+                LIMIT ?";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$guest_id, $limit]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Cập nhật phản hồi của khách hàng
+     */
+    public function updateCustomerFeedback($note_id, $feedback_rating, $feedback_comment)
+    {
+        $sql = "UPDATE guest_special_notes 
+                SET customer_feedback_rating = ?, 
+                    customer_feedback_comment = ?,
+                    feedback_date = CURRENT_TIMESTAMP
+                WHERE note_id = ?";
+
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([$feedback_rating, $feedback_comment, $note_id]);
+    }
+
+    /**
+     * Lấy thống kê phản hồi khách hàng
+     */
+    public function getCustomerFeedbackStats($schedule_id = null)
+    {
+        $sql = "SELECT 
+                    COUNT(*) as total_feedback,
+                    AVG(customer_feedback_rating) as avg_rating,
+                    SUM(CASE WHEN customer_feedback_rating >= 4 THEN 1 ELSE 0 END) as positive_feedback,
+                    SUM(CASE WHEN customer_feedback_rating <= 2 THEN 1 ELSE 0 END) as negative_feedback
+                FROM guest_special_notes gsn";
+
+        $params = [];
+        
+        if ($schedule_id) {
+            $sql .= " INNER JOIN tour_bookings tb ON gsn.booking_id = tb.booking_id
+                      WHERE tb.schedule_id = ? AND gsn.customer_feedback_rating IS NOT NULL";
+            $params[] = $schedule_id;
+        } else {
+            $sql .= " WHERE gsn.customer_feedback_rating IS NOT NULL";
+        }
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetch();
+    }
 }
