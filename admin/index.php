@@ -24,6 +24,8 @@ require_once './controllers/BookingController.php';
 require_once './controllers/ReportController.php';
 require_once './controllers/QuoteController.php';
 require_once './controllers/SpecialNoteController.php';
+require_once './controllers/PartnerController.php';
+require_once './controllers/ServiceController.php';
 
 // Require toàn bộ file Models
 require_once './models/Tour.php';
@@ -36,6 +38,8 @@ require_once './models/User.php'; // Needed for AuthController
 require_once './models/Report.php';
 require_once './models/Quote.php';
 require_once './models/SpecialNote.php';
+require_once './models/Partner.php';
+require_once './models/Service.php';
 // require_once './models/ProductModel.php';
 
 // Route
@@ -171,6 +175,26 @@ try {
         'cap-nhat-trang-thai-ghi-chu' => (new SpecialNoteController())->UpdateNoteStatus(),
         'bao-cao-yeu-cau-dac-biet' => (new SpecialNoteController())->SpecialRequirementsReport(),
         'xuat-bao-cao-yeu-cau-dac-biet' => (new SpecialNoteController())->ExportSpecialRequirementsPDF(),
+
+        // Use Case 2: Quản lý đối tác dịch vụ
+        'danh-sach-doi-tac' => (new PartnerController())->ListPartner(),
+        'them-doi-tac' => (new PartnerController())->AddPartner(),
+        'luu-doi-tac' => (new PartnerController())->StorePartner(),
+        'sua-doi-tac' => (new PartnerController())->EditPartner(),
+        'cap-nhat-doi-tac' => (new PartnerController())->UpdatePartner(),
+        'xoa-doi-tac' => (new PartnerController())->DeletePartner(),
+        'thong-ke-doi-tac' => (new PartnerController())->PartnerStatistics(),
+
+        // Use Case 2: Quản lý dịch vụ
+        'danh-sach-dich-vu' => (new ServiceController())->ListService(),
+        'them-dich-vu' => (new ServiceController())->AddService(),
+        'luu-dich-vu' => (new ServiceController())->StoreService(),
+        'sua-dich-vu' => (new ServiceController())->EditService(),
+        'cap-nhat-dich-vu' => (new ServiceController())->UpdateService(),
+        'xoa-dich-vu' => (new ServiceController())->DeleteService(),
+        'chi-tiet-dich-vu' => (new ServiceController())->ServiceDetail(),
+        'thong-ke-dich-vu' => (new ServiceController())->ServiceStatistics(),
+        'kiem-tra-kha-dung-dich-vu' => (new ServiceController())->CheckAvailability(),
 
         // Báo cáo tài chính tour
         'bao-cao-tour' => (new ReportController())->TourFinanceReport(),
