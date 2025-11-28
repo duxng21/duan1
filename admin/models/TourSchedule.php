@@ -298,16 +298,7 @@ class TourSchedule
             throw new Exception("Lịch khởi hành không tồn tại (schedule_id=" . (int) $schedule_id . ")");
         }
 
-        // KIỂM TRA: Mỗi tour chỉ được phân công 1 nhân sự duy nhất
-        $sqlCheck = "SELECT COUNT(*) FROM schedule_staff WHERE schedule_id = ?";
-        $stmtCheck = $this->conn->prepare($sqlCheck);
-        $stmtCheck->execute([$schedule_id]);
-
-        if ($stmtCheck->fetchColumn() > 0) {
-            throw new Exception("Lịch khởi hành này đã có nhân sự được phân công! Mỗi tour chỉ được phân công 1 nhân sự duy nhất.");
-        }
-
-        // Kiểm tra xem nhân viên đã được phân công chưa (bổ sung)
+        // Kiểm tra xem nhân viên đã được phân công chưa
         $sql = "SELECT COUNT(*) FROM schedule_staff 
                 WHERE schedule_id = ? AND staff_id = ?";
         $stmt = $this->conn->prepare($sql);
@@ -321,6 +312,111 @@ class TourSchedule
                 VALUES (?, ?, ?)";
         $stmt = $this->conn->prepare($sql);
         return $stmt->execute([$schedule_id, $staff_id, $role]);
+    }
+
+    // ==================== VALIDATION CHO USE CASE 2 ====================
+
+    /**
+     * Kiểm tra lịch có đủ thông tin cơ bản chưa
+     */
+    public function validateScheduleComplete($schedule_id)
+    {
+        $schedule = $this->getScheduleById($schedule_id);
+        if (!$schedule) {
+            return ['valid' => false, 'errors' => ['Lịch khởi hành không tồn tại!']];
+        }
+
+        $errors = [];
+
+        // Kiểm tra thông tin cơ bản
+        if (empty($schedule['departure_date'])) {
+            $errors[] = 'Thiếu ngày khởi hành';
+        }
+        if (empty($schedule['meeting_point'])) {
+            $errors[] = 'Thiếu điểm tập trung';
+        }
+        if (empty($schedule['meeting_time'])) {
+            $errors[] = 'Thiếu giờ tập trung';
+        }
+
+        // Kiểm tra có nhân sự chưa
+        $staff = $this->getScheduleStaff($schedule_id);
+        if (empty($staff)) {
+            $errors[] = 'Chưa phân công nhân sự';
+        }
+
+        // Kiểm tra có dịch vụ chưa (tùy chọn - có thể bỏ qua)
+        // $services = $this->getScheduleServices($schedule_id);
+        // if (empty($services)) {
+        //     $errors[] = 'Chưa phân bổ dịch vụ';
+        // }
+
+        return [
+            'valid' => empty($errors),
+            'errors' => $errors
+        ];
+    }
+
+    /**
+     * Kiểm tra trùng lịch nhân sự trong khoảng thời gian
+     */
+    public function checkStaffScheduleConflict($staff_id, $departure_date, $return_date, $exclude_schedule_id = null)
+    {
+        $sql = "SELECT ts.*, t.tour_name, t.code as tour_code
+                FROM schedule_staff ss
+                JOIN tour_schedules ts ON ss.schedule_id = ts.schedule_id
+                JOIN tours t ON ts.tour_id = t.tour_id
+                WHERE ss.staff_id = ?
+                AND ts.status NOT IN ('Cancelled', 'Completed')
+                AND (
+                    (ts.departure_date BETWEEN ? AND ?)
+                    OR (ts.return_date BETWEEN ? AND ?)
+                    OR (? BETWEEN ts.departure_date AND ts.return_date)
+                    OR (? BETWEEN ts.departure_date AND ts.return_date)
+                )";
+        
+        $params = [$staff_id, $departure_date, $return_date, $departure_date, $return_date, $departure_date, $return_date];
+
+        if ($exclude_schedule_id) {
+            $sql .= " AND ts.schedule_id != ?";
+            $params[] = $exclude_schedule_id;
+        }
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Lấy danh sách nhân sự khả dụng cho khoảng thời gian
+     */
+    public function getAvailableStaff($departure_date, $return_date, $staff_type = null)
+    {
+        $sql = "SELECT s.* FROM staff s
+                WHERE s.status = 1
+                AND s.staff_id NOT IN (
+                    SELECT ss.staff_id FROM schedule_staff ss
+                    JOIN tour_schedules ts ON ss.schedule_id = ts.schedule_id
+                    WHERE ts.status NOT IN ('Cancelled', 'Completed')
+                    AND (
+                        (ts.departure_date BETWEEN ? AND ?)
+                        OR (ts.return_date BETWEEN ? AND ?)
+                        OR (? BETWEEN ts.departure_date AND ts.return_date)
+                    )
+                )";
+        
+        $params = [$departure_date, $return_date, $departure_date, $return_date, $departure_date];
+
+        if ($staff_type) {
+            $sql .= " AND s.staff_type = ?";
+            $params[] = $staff_type;
+        }
+
+        $sql .= " ORDER BY s.staff_type, s.full_name ASC";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
 
     // ==================== SỬA LỖI KHÓA NGOẠI TỰ ĐỘNG ====================

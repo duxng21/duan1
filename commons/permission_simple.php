@@ -43,6 +43,21 @@ function requireRole($roleCode)
     }
 }
 
+function requireGuideRole($permissionCode = null)
+{
+    requireLogin();
+    if (!isGuide()) {
+        $_SESSION['error'] = 'Chỉ hướng dẫn viên mới có thể truy cập!';
+        header('Location: ?act=/');
+        exit();
+    }
+    if ($permissionCode && !hasPermission($permissionCode)) {
+        $_SESSION['error'] = 'Bạn không có quyền dùng chức năng này.';
+        header('Location: ?act=/');
+        exit();
+    }
+}
+
 function hasPermission($permissionCode)
 {
     if (isAdmin()) {
