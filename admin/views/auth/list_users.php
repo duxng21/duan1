@@ -51,12 +51,20 @@
                                             <td><?= $u['staff_id'] ?: '-' ?></td>
                                             <td>
                                                 <?php
-                                                $statusClass = match ($u['status']) {
-                                                    'Active' => 'success',
-                                                    'Locked' => 'danger',
-                                                    'Inactive' => 'secondary',
-                                                    default => 'light'
-                                                };
+                                                switch ($u['status']) {
+                                                    case 'Active':
+                                                        $statusClass = 'success';
+                                                        break;
+                                                    case 'Locked':
+                                                        $statusClass = 'danger';
+                                                        break;
+                                                    case 'Inactive':
+                                                        $statusClass = 'secondary';
+                                                        break;
+                                                    default:
+                                                        $statusClass = 'light';
+                                                        break;
+                                                }
                                                 ?>
                                                 <span class="badge badge-<?= $statusClass ?>"><?= $u['status'] ?></span>
                                             </td>

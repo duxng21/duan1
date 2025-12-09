@@ -3,15 +3,11 @@ class SpecialNoteController
 {
     public $modelNote;
     public $modelBooking;
-    public $modelSchedule;
-    public $modelGuest;
 
     public function __construct()
     {
         $this->modelNote = new SpecialNote();
         $this->modelBooking = new Booking();
-        $this->modelSchedule = new TourSchedule();
-        $this->modelGuest = new Guest();
     }
 
     // ==================== QUẢN LÝ GHI CHÚ ====================
@@ -31,7 +27,7 @@ class SpecialNoteController
         }
 
         // Lấy thông tin booking
-        $booking = $this->modelBooking->getBookingById($booking_id);
+        $booking = $this->modelBooking->getById($booking_id);
         if (!$booking) {
             $_SESSION['error'] = 'Không tìm thấy booking!';
             header('Location: ?act=danh-sach-booking');
@@ -309,190 +305,12 @@ class SpecialNoteController
 
         $guests = $this->modelNote->getSpecialRequirementsReport($schedule_id);
         $statistics = $this->modelNote->getNoteStatistics(null, $schedule_id);
-        $schedule = $this->modelSchedule->getScheduleById($schedule_id);
+
+        // Lấy thông tin schedule
+        require_once './models/TourSchedule.php';
+        $modelSchedule = new TourSchedule();
+        $schedule = $modelSchedule->getScheduleById($schedule_id);
 
         require_once './views/special_notes/export_special_requirements_pdf.php';
-    }
-
-    /**
-     * Dashboard ghi chú đặc biệt - Tổng quan
-     */
-    public function Dashboard()
-    {
-        requireLogin();
-
-        // Lấy thống kê tổng quan
-        $overallStats = $this->modelNote->getOverallStatistics();
-        
-        // Lấy ghi chú ưu tiên cao chưa xử lý
-        $urgentNotes = $this->modelNote->getUrgentNotes();
-        
-        // Lấy thông báo chưa đọc
-        $unreadNotifications = $this->modelNote->getUnreadNotifications($_SESSION['user_id']);
-        
-        // Lấy báo cáo hiệu quả xử lý theo tháng
-        $monthlyEfficiency = $this->modelNote->getMonthlyEfficiencyReport();
-
-        require_once './views/special_notes/dashboard.php';
-    }
-
-    /**
-     * Quản lý ghi chú đặc biệt - Menu chính
-     */
-    public function ManageSpecialNotes()
-    {
-        requireLogin();
-
-        // Lấy danh sách tour đang có lịch khởi hành
-        $tours = $this->modelSchedule->getActiveTours();
-        
-        require_once './views/special_notes/manage_notes.php';
-    }
-
-    /**
-     * Báo cáo hiệu quả phục vụ đặc biệt (sau tour)
-     */
-    public function ServiceEfficiencyReport()
-    {
-        requireLogin();
-
-        $schedule_id = $_GET['schedule_id'] ?? null;
-        if (!$schedule_id) {
-            $_SESSION['error'] = 'Thiếu thông tin lịch khởi hành!';
-            header('Location: ?act=danh-sach-lich-khoi-hanh');
-            exit();
-        }
-
-        // Lấy báo cáo hiệu quả
-        $efficiency = $this->modelNote->getServiceEfficiencyReport($schedule_id);
-        $schedule = $this->modelSchedule->getScheduleById($schedule_id);
-        $notes = $this->modelNote->getNotesBySchedule($schedule_id);
-
-        require_once './views/special_notes/service_efficiency_report.php';
-    }
-
-    /**
-     * Gửi thông báo nhắc nhở trước tour
-     */
-    public function SendPreTourReminder()
-    {
-        requireLogin();
-        requireRole(['ADMIN', 'STAFF']);
-
-        $schedule_id = $_POST['schedule_id'] ?? null;
-        if (!$schedule_id) {
-            echo json_encode(['success' => false, 'message' => 'Thiếu thông tin lịch khởi hành']);
-            exit();
-        }
-
-        try {
-            $result = $this->modelNote->sendPreTourReminder($schedule_id);
-            
-            if ($result) {
-                echo json_encode([
-                    'success' => true, 
-                    'message' => 'Đã gửi thông báo nhắc nhở đến tất cả HDV và nhân viên liên quan'
-                ]);
-            } else {
-                throw new Exception('Không thể gửi thông báo');
-            }
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-        }
-        exit();
-    }
-
-    /**
-     * Đánh dấu thông báo đã đọc
-     */
-    public function MarkNotificationRead()
-    {
-        requireLogin();
-
-        $notification_id = $_POST['notification_id'] ?? null;
-        if (!$notification_id) {
-            echo json_encode(['success' => false, 'message' => 'Thiếu thông tin']);
-            exit();
-        }
-
-        try {
-            $result = $this->modelNote->markNotificationAsRead($notification_id, $_SESSION['user_id']);
-            echo json_encode(['success' => $result]);
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-        }
-        exit();
-    }
-
-    /**
-     * Lấy số lượng thông báo chưa đọc (AJAX)
-     */
-    public function GetUnreadCount()
-    {
-        requireLogin();
-        
-        $count = $this->modelNote->getUnreadNotificationCount($_SESSION['user_id']);
-        echo json_encode(['count' => $count]);
-        exit();
-    }
-
-    /**
-     * In danh sách khách có yêu cầu riêng
-     */
-    public function PrintSpecialRequirements()
-    {
-        requireLogin();
-
-        $schedule_id = $_GET['schedule_id'] ?? null;
-        if (!$schedule_id) {
-            $_SESSION['error'] = 'Thiếu thông tin lịch khởi hành!';
-            header('Location: ?act=danh-sach-lich-khoi-hanh');
-            exit();
-        }
-
-        $guests = $this->modelNote->getSpecialRequirementsReport($schedule_id);
-        $schedule = $this->modelSchedule->getScheduleById($schedule_id);
-        $statistics = $this->modelNote->getNoteStatistics(null, $schedule_id);
-
-        require_once './views/special_notes/print_special_requirements.php';
-    }
-
-    /**
-     * Copy ghi chú từ booking trước (cho khách quen)
-     */
-    public function CopyNotesFromPreviousBooking()
-    {
-        requireLogin();
-
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            try {
-                $guest_id = $_POST['guest_id'] ?? null;
-                $current_booking_id = $_POST['current_booking_id'] ?? null;
-                $previous_booking_id = $_POST['previous_booking_id'] ?? null;
-
-                if (!$guest_id || !$current_booking_id || !$previous_booking_id) {
-                    throw new Exception('Thiếu thông tin!');
-                }
-
-                $result = $this->modelNote->copyNotesFromPreviousBooking(
-                    $guest_id, 
-                    $current_booking_id, 
-                    $previous_booking_id, 
-                    $_SESSION['user_id']
-                );
-
-                if ($result) {
-                    $_SESSION['success'] = 'Đã sao chép thành công ' . $result . ' ghi chú từ booking trước!';
-                } else {
-                    throw new Exception('Không tìm thấy ghi chú nào để sao chép!');
-                }
-
-                header('Location: ?act=danh-sach-khach&booking_id=' . $current_booking_id);
-            } catch (Exception $e) {
-                $_SESSION['error'] = $e->getMessage();
-                header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '?act=danh-sach-booking'));
-            }
-            exit();
-        }
     }
 }

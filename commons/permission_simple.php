@@ -70,7 +70,10 @@ function hasPermission($permissionCode)
             'tour.view',
             'schedule.view_own',
             'schedule.checkin',
-            'schedule.log.update'
+            'schedule.log.update',
+            'guest.view',
+            'guest.checkin',
+            'guest.export'
         ];
         return in_array($permissionCode, $guidePerms);
     }
@@ -144,3 +147,136 @@ function logUserActivity($action, $module = null, $record_id = null, $details = 
     }
 }
 
+/**
+ * Điều hướng về trang dashboard phù hợp với role
+ */
+function redirectToRoleDashboard()
+{
+    if (isGuide()) {
+        header('Location: ?act=home-guide');
+    } else {
+        header('Location: ?act=dashboard');
+    }
+    exit();
+}
+
+/**
+ * Kiểm tra và chặn HDV truy cập route admin-only
+ */
+function blockGuideFromAdminRoutes($act)
+{
+    if (!isGuide()) {
+        return; // Không phải HDV, cho phép
+    }
+
+    // Danh sách các route admin-only
+    $adminOnlyRoutes = [
+        'list-tour',
+        // 'menu-tour',
+        // 'them-danh-muc',
+        'add-list',
+        'luu-tour',
+        'edit-list',
+        'cap-nhat-tour',
+        'xoa-tour',
+        'chi-tiet-tour',
+        'them-lich-trinh',
+        'xoa-lich-trinh',
+        'them-anh-tour',
+        'xoa-anh-tour',
+        'luu-chinh-sach',
+        'luu-tags',
+        'seed-tour-data',
+        'seed-all-tours',
+        'danh-sach-lich-khoi-hanh',
+        'them-lich-khoi-hanh',
+        'luu-lich-khoi-hanh',
+        'sua-lich-khoi-hanh',
+        'cap-nhat-lich-khoi-hanh',
+        'xoa-lich-khoi-hanh',
+        'phan-cong-nhan-su',
+        'xoa-nhan-su-khoi-lich',
+        'phan-bo-dich-vu',
+        'xoa-dich-vu-khoi-lich',
+        'xem-lich-theo-thang',
+        'xuat-bao-cao-lich',
+        'tong-quan-phan-cong',
+        'danh-sach-nhan-su',
+        'them-nhan-su',
+        'luu-nhan-su',
+        'sua-nhan-su',
+        'cap-nhat-nhan-su',
+        'xoa-nhan-su',
+        'thong-ke-nhan-su',
+        'xuat-excel-nhan-su',
+        'xuat-pdf-nhan-su',
+        'tao-tai-khoan-hdv',
+        'tao-tai-khoan-hang-loat',
+        'list-booking',
+        'danh-sach-booking',
+        'them-booking',
+        'luu-booking',
+        'chi-tiet-booking',
+        'sua-booking',
+        'cap-nhat-booking',
+        'cap-nhat-trang-thai-booking',
+        'huy-booking',
+        'in-phieu-booking',
+        'danh-sach-khach',
+        'check-in-khach',
+        'phan-phong-khach',
+        'xuat-danh-sach-doan',
+        'bao-cao-doan',
+        'xuat-danh-sach-da-check-in',
+        'ghi-chu-dac-biet',
+        'them-ghi-chu',
+        'sua-ghi-chu',
+        'cap-nhat-ghi-chu',
+        'xoa-ghi-chu',
+        'cap-nhat-trang-thai-ghi-chu',
+        'bao-cao-yeu-cau-dac-biet',
+        'xuat-bao-cao-yeu-cau-dac-biet',
+        'bao-cao-tour',
+        'xuat-bao-cao-tour',
+        'danh-sach-bao-gia',
+        'tao-bao-gia',
+        'luu-bao-gia',
+        'xem-bao-gia',
+        'xuat-bao-gia',
+        'cap-nhat-trang-thai-bao-gia',
+        'xoa-bao-gia',
+        'danh-sach-user',
+        'tao-user',
+        'luu-user',
+        'doi-trang-thai-user',
+        'dashboard-hieu-suat',
+        'quan-ly-chung-chi',
+        'them-chung-chi',
+        'xoa-chung-chi',
+        'quan-ly-ngon-ngu',
+        'them-ngon-ngu',
+        'xoa-ngon-ngu',
+        'quan-ly-lich-nghi',
+        'them-lich-nghi',
+        'duyet-lich-nghi',
+        'tu-choi-lich-nghi',
+        'lich-su-tour',
+        'cap-nhat-lich-su-tour',
+        'quan-ly-danh-gia',
+        'them-danh-gia'
+    ];
+
+    // UC3: Quản lý phiên bản tour (admin only)
+    $adminOnlyRoutes = array_merge($adminOnlyRoutes, [
+        'quan-ly-phien-ban',
+        'tao-phien-ban',
+        'kich-hoat-phien-ban',
+        'tam-dung-phien-ban',
+        'luu-tru-phien-ban',
+    ]);
+
+    if (in_array($act, $adminOnlyRoutes)) {
+        $_SESSION['error'] = 'Bạn không có quyền truy cập chức năng này!';
+        redirectToRoleDashboard();
+    }
+}

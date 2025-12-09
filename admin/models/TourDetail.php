@@ -64,6 +64,11 @@ class TourDetail
 
     // ==================== GALLERY (Thư viện ảnh) ====================
 
+    public function getImages($tour_id)
+    {
+        return $this->getGallery($tour_id);
+    }
+
     public function getGallery($tour_id)
     {
         $sql = "SELECT * FROM tour_media WHERE tour_id = ? ORDER BY is_featured DESC, media_id DESC";

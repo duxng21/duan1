@@ -91,7 +91,7 @@ class StaffExpanded extends Staff
 
     // ==================== LỊCH NGHỈ / BẬN ====================
 
-    public function getTimeOff($staff_id, $from_date = null, $to_date = null)
+    public function getTimeOffWithDateRange($staff_id, $from_date = null, $to_date = null)
     {
         $sql = "SELECT * FROM staff_time_off WHERE staff_id = ?";
         $params = [$staff_id];
@@ -457,13 +457,23 @@ class StaffExpanded extends Staff
 
     public function getTopPerformers($limit = 10, $period = 'month')
     {
-        $dateCondition = match ($period) {
-            'week' => 'DATE_SUB(CURDATE(), INTERVAL 7 DAY)',
-            'month' => 'DATE_SUB(CURDATE(), INTERVAL 30 DAY)',
-            'quarter' => 'DATE_SUB(CURDATE(), INTERVAL 90 DAY)',
-            'year' => 'DATE_SUB(CURDATE(), INTERVAL 365 DAY)',
-            default => 'DATE_SUB(CURDATE(), INTERVAL 30 DAY)'
-        };
+        switch ($period) {
+            case 'week':
+                $dateCondition = 'DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
+                break;
+            case 'month':
+                $dateCondition = 'DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
+                break;
+            case 'quarter':
+                $dateCondition = 'DATE_SUB(CURDATE(), INTERVAL 90 DAY)';
+                break;
+            case 'year':
+                $dateCondition = 'DATE_SUB(CURDATE(), INTERVAL 365 DAY)';
+                break;
+            default:
+                $dateCondition = 'DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
+                break;
+        }
 
         $sql = "SELECT 
                     s.staff_id,

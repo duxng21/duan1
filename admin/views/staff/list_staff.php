@@ -70,6 +70,11 @@
                                         class="btn btn-success btn-sm mr-1">
                                         <i class="feather icon-download"></i> Xuất Excel
                                     </a>
+                                    <a href="?act=tao-tai-khoan-hang-loat"
+                                        onclick="return confirm('Tạo tài khoản cho TẤT CẢ HDV chưa có tài khoản?')"
+                                        class="btn btn-secondary btn-sm mr-1">
+                                        <i class="feather icon-users"></i> Tạo TK hàng loạt
+                                    </a>
                                     <a href="?act=them-nhan-su" class="btn btn-primary btn-sm">
                                         <i class="feather icon-plus"></i> Thêm nhân sự
                                     </a>
@@ -148,6 +153,7 @@
                                                     <th>Số tour</th>
                                                     <th>Đánh giá</th>
                                                     <th>Trạng thái</th>
+                                                    <th>Tài khoản</th>
                                                     <th>Hành động</th>
                                                 </tr>
                                             </thead>
@@ -165,20 +171,28 @@
                                                             </td>
                                                             <td>
                                                                 <?php
-                                                                $typeClass = match ($staff['staff_type']) {
-                                                                    'Guide' => 'badge-primary',
-                                                                    'Manager' => 'badge-success',
-                                                                    'Driver' => 'badge-info',
-                                                                    'Support' => 'badge-warning',
-                                                                    default => 'badge-light'
-                                                                };
-                                                                $typeName = match ($staff['staff_type']) {
-                                                                    'Guide' => 'HDV',
-                                                                    'Manager' => 'Quản lý',
-                                                                    'Driver' => 'Tài xế',
-                                                                    'Support' => 'Hỗ trợ',
-                                                                    default => $staff['staff_type']
-                                                                };
+                                                                switch ($staff['staff_type']) {
+                                                                    case 'Guide':
+                                                                        $typeClass = 'badge-primary';
+                                                                        $typeName = 'HDV';
+                                                                        break;
+                                                                    case 'Manager':
+                                                                        $typeClass = 'badge-success';
+                                                                        $typeName = 'Quản lý';
+                                                                        break;
+                                                                    case 'Driver':
+                                                                        $typeClass = 'badge-info';
+                                                                        $typeName = 'Tài xế';
+                                                                        break;
+                                                                    case 'Support':
+                                                                        $typeClass = 'badge-warning';
+                                                                        $typeName = 'Hỗ trợ';
+                                                                        break;
+                                                                    default:
+                                                                        $typeClass = 'badge-light';
+                                                                        $typeName = $staff['staff_type'];
+                                                                        break;
+                                                                }
                                                                 ?>
                                                                 <span class="badge <?= $typeClass ?>"><?= $typeName ?></span>
                                                             </td>
@@ -212,17 +226,34 @@
                                                                     <?= number_format($rating, 1) ?>
                                                                 </span>
                                                             </td>
-                                                            <span class="badge <?= $typeClass ?>"><?= $typeName ?></span>
-                                                            </td>
-                                                            <td><?= htmlspecialchars($staff['phone'] ?? '') ?></td>
-                                                            <td><?= htmlspecialchars($staff['email'] ?? '') ?></td>
-                                                            <td><?= $staff['experience_years'] ?? 0 ?> năm</td>
-                                                            <td><?= htmlspecialchars($staff['languages'] ?? '') ?></td>
                                                             <td>
                                                                 <span
                                                                     class="badge <?= $staff['status'] ? 'badge-success' : 'badge-secondary' ?>">
                                                                     <?= $staff['status'] ? 'Đang làm việc' : 'Nghỉ việc' ?>
                                                                 </span>
+                                                            </td>
+                                                            <td>
+                                                                <?php
+                                                                $conn = connectDB();
+                                                                $userStmt = $conn->prepare('SELECT username FROM users WHERE staff_id = ? LIMIT 1');
+                                                                $userStmt->execute([$staff['staff_id']]);
+                                                                $userAccount = $userStmt->fetch();
+
+                                                                if ($userAccount): ?>
+                                                                    <span class="badge badge-success" title="Đã có tài khoản">
+                                                                        <i class="feather icon-check-circle"></i>
+                                                                        <?= htmlspecialchars($userAccount['username']) ?>
+                                                                    </span>
+                                                                <?php elseif ($staff['staff_type'] === 'Guide'): ?>
+                                                                    <a href="?act=tao-tai-khoan-hdv&id=<?= $staff['staff_id'] ?>"
+                                                                        onclick="return confirm('Tạo tài khoản đăng nhập cho HDV: <?= htmlspecialchars($staff['full_name']) ?>?')"
+                                                                        class="btn btn-sm btn-outline-primary"
+                                                                        title="Tạo tài khoản">
+                                                                        <i class="feather icon-user-plus"></i> Tạo TK
+                                                                    </a>
+                                                                <?php else: ?>
+                                                                    <span class="text-muted">-</span>
+                                                                <?php endif; ?>
                                                             </td>
                                                             <td>
                                                                 <a href="?act=chi-tiet-nhan-su&id=<?= $staff['staff_id'] ?>"
@@ -243,7 +274,7 @@
                                                     <?php endforeach; ?>
                                                 <?php else: ?>
                                                     <tr>
-                                                        <td colspan="9" class="text-center text-muted">Chưa có nhân sự nào
+                                                        <td colspan="11" class="text-center text-muted">Chưa có nhân sự nào
                                                         </td>
                                                     </tr>
                                                 <?php endif; ?>
