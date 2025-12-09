@@ -41,20 +41,28 @@
                                             <td><strong>Loại:</strong></td>
                                             <td>
                                                 <?php
-                                                $typeClass = match ($staff['staff_type']) {
-                                                    'Guide' => 'badge-primary',
-                                                    'Driver' => 'badge-info',
-                                                    'Support' => 'badge-warning',
-                                                    'Manager' => 'badge-success',
-                                                    default => 'badge-light'
-                                                };
-                                                $typeName = match ($staff['staff_type']) {
-                                                    'Guide' => 'Hướng dẫn viên',
-                                                    'Driver' => 'Tài xế',
-                                                    'Support' => 'Hỗ trợ',
-                                                    'Manager' => 'Quản lý',
-                                                    default => $staff['staff_type']
-                                                };
+                                                switch ($staff['staff_type']) {
+                                                    case 'Guide':
+                                                        $typeClass = 'badge-primary';
+                                                        $typeName = 'Hướng dẫn viên';
+                                                        break;
+                                                    case 'Driver':
+                                                        $typeClass = 'badge-info';
+                                                        $typeName = 'Tài xế';
+                                                        break;
+                                                    case 'Support':
+                                                        $typeClass = 'badge-warning';
+                                                        $typeName = 'Hỗ trợ';
+                                                        break;
+                                                    case 'Manager':
+                                                        $typeClass = 'badge-success';
+                                                        $typeName = 'Quản lý';
+                                                        break;
+                                                    default:
+                                                        $typeClass = 'badge-light';
+                                                        $typeName = $staff['staff_type'];
+                                                        break;
+                                                }
                                                 ?>
                                                 <span class="badge <?= $typeClass ?>"><?= $typeName ?></span>
                                             </td>
@@ -112,6 +120,126 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Thông tin tài khoản -->
+                        <?php if ($staff['staff_type'] === 'Guide'): ?>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">
+                                        <i class="feather icon-user"></i> Tài khoản đăng nhập
+                                    </h4>
+                                </div>
+                                <div class="card-content">
+                                    <div class="card-body">
+                                        <?php if ($userAccount): ?>
+                                            <table class="table table-borderless">
+                                                <tr>
+                                                    <td><strong>Username:</strong></td>
+                                                    <td>
+                                                        <code><?= htmlspecialchars($userAccount['username']) ?></code>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Email:</strong></td>
+                                                    <td><?= htmlspecialchars($userAccount['email'] ?? 'N/A') ?></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Vai trò:</strong></td>
+                                                    <td>
+                                                        <span class="badge badge-primary">
+                                                            <?= htmlspecialchars($userAccount['role_name'] ?? $userAccount['role_code']) ?>
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Trạng thái:</strong></td>
+                                                    <td>
+                                                        <?php
+                                                        switch ($userAccount['status']) {
+                                                            case 'Active':
+                                                                $statusClass = 'badge-success';
+                                                                $statusText = 'Hoạt động';
+                                                                break;
+                                                            case 'Locked':
+                                                                $statusClass = 'badge-danger';
+                                                                $statusText = 'Đã khóa';
+                                                                break;
+                                                            case 'Inactive':
+                                                                $statusClass = 'badge-secondary';
+                                                                $statusText = 'Không hoạt động';
+                                                                break;
+                                                            default:
+                                                                $statusClass = 'badge-light';
+                                                                $statusText = $userAccount['status'];
+                                                                break;
+                                                        }
+                                                        ?>
+                                                        <span class="badge <?= $statusClass ?>"><?= $statusText ?></span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Lần đăng nhập cuối:</strong></td>
+                                                    <td>
+                                                        <?php if ($userAccount['last_login']): ?>
+                                                            <?= date('d/m/Y H:i', strtotime($userAccount['last_login'])) ?>
+                                                        <?php else: ?>
+                                                            <span class="text-muted">Chưa đăng nhập</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Số lần đăng nhập sai:</strong></td>
+                                                    <td>
+                                                        <?php
+                                                        $attempts = $userAccount['login_attempts'] ?? 0;
+                                                        $attemptsClass = $attempts >= 3 ? 'text-danger' : 'text-muted';
+                                                        ?>
+                                                        <span class="<?= $attemptsClass ?>">
+                                                            <?= $attempts ?> lần
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Ngày tạo:</strong></td>
+                                                    <td>
+                                                        <?= date('d/m/Y', strtotime($userAccount['created_at'])) ?>
+                                                    </td>
+                                                </tr>
+                                            </table>
+
+                                            <div class="mt-3">
+                                                <?php if ($userAccount['status'] === 'Active'): ?>
+                                                    <a href="?act=doi-trang-thai-user&user_id=<?= $userAccount['user_id'] ?>&action=lock"
+                                                        onclick="return confirm('Khóa tài khoản này?')"
+                                                        class="btn btn-danger btn-block">
+                                                        <i class="feather icon-lock"></i> Khóa tài khoản
+                                                    </a>
+                                                <?php else: ?>
+                                                    <a href="?act=doi-trang-thai-user&user_id=<?= $userAccount['user_id'] ?>&action=unlock"
+                                                        onclick="return confirm('Mở khóa tài khoản này?')"
+                                                        class="btn btn-success btn-block">
+                                                        <i class="feather icon-unlock"></i> Mở khóa tài khoản
+                                                    </a>
+                                                <?php endif; ?>
+                                                <a href="?act=danh-sach-user" class="btn btn-outline-secondary btn-block mt-1">
+                                                    <i class="feather icon-users"></i> Xem danh sách tài khoản
+                                                </a>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="text-center py-3">
+                                                <i class="feather icon-user-x font-large-2 text-muted"></i>
+                                                <p class="text-muted mt-2">Chưa có tài khoản đăng nhập</p>
+                                                <a href="?act=tao-tai-khoan-hdv&id=<?= $staff['staff_id'] ?>"
+                                                    onclick="return confirm('Tạo tài khoản đăng nhập cho HDV: <?= htmlspecialchars($staff['full_name']) ?>?')"
+                                                    class="btn btn-primary">
+                                                    <i class="feather icon-user-plus"></i> Tạo tài khoản
+                                                </a>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Lịch làm việc -->
@@ -227,22 +355,32 @@
                                                             </td>
                                                             <td>
                                                                 <?php
-                                                                $statusClass = match ($schedule['status']) {
-                                                                    'Open' => 'badge-success',
-                                                                    'Full' => 'badge-warning',
-                                                                    'Confirmed' => 'badge-primary',
-                                                                    'Completed' => 'badge-secondary',
-                                                                    'Cancelled' => 'badge-danger',
-                                                                    default => 'badge-light'
-                                                                };
-                                                                $statusText = match ($schedule['status']) {
-                                                                    'Open' => 'Mở đặt',
-                                                                    'Full' => 'Đã đầy',
-                                                                    'Confirmed' => 'Đã xác nhận',
-                                                                    'Completed' => 'Hoàn thành',
-                                                                    'Cancelled' => 'Đã hủy',
-                                                                    default => $schedule['status']
-                                                                };
+                                                                switch ($schedule['status']) {
+                                                                    case 'Open':
+                                                                        $statusClass = 'badge-success';
+                                                                        $statusText = 'Mở đặt';
+                                                                        break;
+                                                                    case 'Full':
+                                                                        $statusClass = 'badge-warning';
+                                                                        $statusText = 'Đã đầy';
+                                                                        break;
+                                                                    case 'Confirmed':
+                                                                        $statusClass = 'badge-primary';
+                                                                        $statusText = 'Đã xác nhận';
+                                                                        break;
+                                                                    case 'Completed':
+                                                                        $statusClass = 'badge-secondary';
+                                                                        $statusText = 'Hoàn thành';
+                                                                        break;
+                                                                    case 'Cancelled':
+                                                                        $statusClass = 'badge-danger';
+                                                                        $statusText = 'Đã hủy';
+                                                                        break;
+                                                                    default:
+                                                                        $statusClass = 'badge-light';
+                                                                        $statusText = $schedule['status'];
+                                                                        break;
+                                                                }
                                                                 ?>
                                                                 <span
                                                                     class="badge <?= $statusClass ?>"><?= $statusText ?></span>

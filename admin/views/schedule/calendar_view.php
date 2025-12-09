@@ -100,7 +100,8 @@
                                                                             class="badge badge-info badge-sm d-block mb-1 text-left"
                                                                             title="<?= htmlspecialchars($schedule['tour_name']) ?>"
                                                                             style="font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                                                            <?= htmlspecialchars(substr($schedule['tour_name'], 0, 15)) ?>                <?= strlen($schedule['tour_name']) > 15 ? '...' : '' ?>
+                                                                            <?= htmlspecialchars(substr($schedule['tour_name'], 0, 15)) ?>
+                                                                            <?= strlen($schedule['tour_name']) > 15 ? '...' : '' ?>
                                                                             <br>
                                                                             <small><?= $schedule['total_guests'] ?? 0 ?>/<?= $schedule['max_participants'] ?>
                                                                                 người</small>
@@ -150,22 +151,32 @@
                                                                 </td>
                                                                 <td>
                                                                     <?php
-                                                                    $statusClass = match ($schedule['status']) {
-                                                                        'Open' => 'badge-success',
-                                                                        'Full' => 'badge-warning',
-                                                                        'Confirmed' => 'badge-primary',
-                                                                        'Completed' => 'badge-secondary',
-                                                                        'Cancelled' => 'badge-danger',
-                                                                        default => 'badge-light'
-                                                                    };
-                                                                    $statusText = match ($schedule['status']) {
-                                                                        'Open' => 'Mở',
-                                                                        'Full' => 'Đầy',
-                                                                        'Confirmed' => 'Đã xác nhận',
-                                                                        'Completed' => 'Hoàn thành',
-                                                                        'Cancelled' => 'Đã hủy',
-                                                                        default => $schedule['status']
-                                                                    };
+                                                                    switch ($schedule['status']) {
+                                                                        case 'Open':
+                                                                            $statusClass = 'badge-success';
+                                                                            $statusText = 'Mở';
+                                                                            break;
+                                                                        case 'Full':
+                                                                            $statusClass = 'badge-warning';
+                                                                            $statusText = 'Đầy';
+                                                                            break;
+                                                                        case 'Confirmed':
+                                                                            $statusClass = 'badge-primary';
+                                                                            $statusText = 'Đã xác nhận';
+                                                                            break;
+                                                                        case 'Completed':
+                                                                            $statusClass = 'badge-secondary';
+                                                                            $statusText = 'Hoàn thành';
+                                                                            break;
+                                                                        case 'Cancelled':
+                                                                            $statusClass = 'badge-danger';
+                                                                            $statusText = 'Đã hủy';
+                                                                            break;
+                                                                        default:
+                                                                            $statusClass = 'badge-light';
+                                                                            $statusText = $schedule['status'];
+                                                                            break;
+                                                                    }
                                                                     ?>
                                                                     <span
                                                                         class="badge <?= $statusClass ?>"><?= $statusText ?></span>

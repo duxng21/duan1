@@ -3,6 +3,21 @@ class Staff
 {
     public $conn;
     private $allowedTypes = ['Guide', 'Manager'];
+
+    public function __construct()
+    {
+        $this->conn = connectDB();
+    }
+
+    public function countAll()
+    {
+        $sql = "SELECT COUNT(*) as total FROM staff";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return $result ? (int) $result['total'] : 0;
+    }
+
     // Các giá trị mapping để tránh cảnh báo MySQL ENUM / CHAR bị truncate
     private function normalizeCategory($val)
     {
@@ -104,11 +119,6 @@ class Staff
         }
         // Mặc định: dùng phần tử đầu tiên của enum
         return $enumValues[0];
-    }
-
-    public function __construct()
-    {
-        $this->conn = connectDB();
     }
 
     // ==================== DANH SÁCH NHÂN SỰ ====================

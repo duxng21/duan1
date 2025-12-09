@@ -244,6 +244,20 @@ class StaffController
         $to_date = $_GET['to_date'] ?? date('Y-m-t');
         $schedules = $this->modelStaff->getSchedulesByStaff($id, $from_date, $to_date);
 
+        // Lấy thông tin tài khoản nếu có
+        $userAccount = null;
+        if ($staff['staff_type'] === 'Guide') {
+            $conn = connectDB();
+            $userStmt = $conn->prepare(
+                'SELECT u.*, r.role_name, r.role_code 
+                FROM users u 
+                LEFT JOIN roles r ON u.role_id = r.role_id 
+                WHERE u.staff_id = ? LIMIT 1'
+            );
+            $userStmt->execute([$id]);
+            $userAccount = $userStmt->fetch();
+        }
+
         require_once './views/staff/staff_detail.php';
     }
 
@@ -386,5 +400,217 @@ class StaffController
             header('Location: ?act=danh-sach-nhan-su');
             exit();
         }
+    }
+
+    // ==================== TẠO TÀI KHOẢN HDV ====================
+
+    public function CreateAccountForStaff()
+    {
+        try {
+            requireRole('ADMIN');
+
+            $staff_id = $_GET['id'] ?? null;
+            if (!$staff_id) {
+                $_SESSION['error'] = 'Thiếu tham số staff_id!';
+                header('Location: ?act=danh-sach-nhan-su');
+                exit();
+            }
+
+            $staff = $this->modelStaff->getById($staff_id);
+            if (!$staff) {
+                $_SESSION['error'] = 'Không tìm thấy nhân sự!';
+                header('Location: ?act=danh-sach-nhan-su');
+                exit();
+            }
+
+            if ($staff['staff_type'] !== 'Guide') {
+                $_SESSION['error'] = 'Chỉ có thể tạo tài khoản cho Hướng dẫn viên!';
+                header('Location: ?act=danh-sach-nhan-su');
+                exit();
+            }
+
+            $conn = connectDB();
+            $checkStmt = $conn->prepare('SELECT user_id, username FROM users WHERE staff_id = ? LIMIT 1');
+            $checkStmt->execute([$staff_id]);
+            $existingUser = $checkStmt->fetch();
+
+            if ($existingUser) {
+                $_SESSION['warning'] = 'Nhân sự này đã có tài khoản: ' . $existingUser['username'];
+                header('Location: ?act=danh-sach-nhan-su');
+                exit();
+            }
+
+            $username = $this->generateUsername($staff);
+            $defaultPassword = 'Guide@' . date('Y');
+            $hashedPassword = password_hash($defaultPassword, PASSWORD_DEFAULT);
+
+            $roleStmt = $conn->prepare('SELECT role_id FROM roles WHERE role_code = ? LIMIT 1');
+            $roleStmt->execute(['GUIDE']);
+            $role = $roleStmt->fetch();
+
+            if (!$role) {
+                $insertRoleStmt = $conn->prepare('INSERT INTO roles (role_code, role_name) VALUES (?, ?)');
+                $insertRoleStmt->execute(['GUIDE', 'Hướng dẫn viên']);
+                $role_id = $conn->lastInsertId();
+            } else {
+                $role_id = $role['role_id'];
+            }
+
+            $userModel = new User();
+            $user_id = $userModel->create([
+                'username' => $username,
+                'password' => $hashedPassword,
+                'full_name' => $staff['full_name'],
+                'email' => $staff['email'] ?? null,
+                'phone' => $staff['phone'] ?? null,
+                'role_id' => $role_id,
+                'staff_id' => $staff_id,
+                'status' => 'Active'
+            ]);
+
+            logUserActivity('create_guide_account', 'staff', $user_id, "Tạo tài khoản cho HDV: {$staff['full_name']}");
+
+            $_SESSION['success'] = "Tạo tài khoản thành công!<br>Username: <strong>{$username}</strong><br>Mật khẩu: <strong>{$defaultPassword}</strong><br><em class='text-warning'>Vui lòng lưu lại thông tin này!</em>";
+            header('Location: ?act=danh-sach-nhan-su');
+            exit();
+
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Lỗi tạo tài khoản: ' . $e->getMessage();
+            header('Location: ?act=danh-sach-nhan-su');
+            exit();
+        }
+    }
+
+    public function CreateAccountsForAllGuides()
+    {
+        try {
+            requireRole('ADMIN');
+
+            $conn = connectDB();
+
+            $sql = "SELECT s.* FROM staff s 
+                    LEFT JOIN users u ON s.staff_id = u.staff_id 
+                    WHERE s.staff_type = 'Guide' 
+                    AND s.status = 1 
+                    AND u.user_id IS NULL";
+            $stmt = $conn->query($sql);
+            $guidesWithoutAccount = $stmt->fetchAll();
+
+            if (empty($guidesWithoutAccount)) {
+                $_SESSION['info'] = 'Tất cả HDV đã có tài khoản!';
+                header('Location: ?act=danh-sach-nhan-su');
+                exit();
+            }
+
+            $userModel = new User();
+            $created = [];
+            $failed = [];
+
+            $roleStmt = $conn->prepare('SELECT role_id FROM roles WHERE role_code = ? LIMIT 1');
+            $roleStmt->execute(['GUIDE']);
+            $role = $roleStmt->fetch();
+
+            if (!$role) {
+                $insertRoleStmt = $conn->prepare('INSERT INTO roles (role_code, role_name) VALUES (?, ?)');
+                $insertRoleStmt->execute(['GUIDE', 'Hướng dẫn viên']);
+                $role_id = $conn->lastInsertId();
+            } else {
+                $role_id = $role['role_id'];
+            }
+
+            foreach ($guidesWithoutAccount as $staff) {
+                try {
+                    $username = $this->generateUsername($staff);
+                    $defaultPassword = 'Guide@' . date('Y');
+                    $hashedPassword = password_hash($defaultPassword, PASSWORD_DEFAULT);
+
+                    $user_id = $userModel->create([
+                        'username' => $username,
+                        'password' => $hashedPassword,
+                        'full_name' => $staff['full_name'],
+                        'email' => $staff['email'] ?? null,
+                        'phone' => $staff['phone'] ?? null,
+                        'role_id' => $role_id,
+                        'staff_id' => $staff['staff_id'],
+                        'status' => 'Active'
+                    ]);
+
+                    $created[] = [
+                        'name' => $staff['full_name'],
+                        'username' => $username,
+                        'password' => $defaultPassword
+                    ];
+
+                } catch (Exception $e) {
+                    $failed[] = $staff['full_name'] . ': ' . $e->getMessage();
+                }
+            }
+
+            $message = "<strong>Tạo tài khoản hàng loạt hoàn tất:</strong><br>";
+            $message .= "✅ Thành công: " . count($created) . " tài khoản<br>";
+
+            if (!empty($created)) {
+                $message .= "<br><strong>Danh sách tài khoản đã tạo:</strong><br>";
+                foreach ($created as $acc) {
+                    $message .= "- {$acc['name']}: <code>{$acc['username']}</code> / <code>{$acc['password']}</code><br>";
+                }
+                $message .= "<br><em class='text-warning'>Vui lòng lưu lại thông tin này!</em>";
+            }
+
+            if (!empty($failed)) {
+                $message .= "<br><br>❌ Thất bại: " . count($failed) . "<br>";
+                foreach ($failed as $err) {
+                    $message .= "- {$err}<br>";
+                }
+            }
+
+            $_SESSION['success'] = $message;
+            header('Location: ?act=danh-sach-nhan-su');
+            exit();
+
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Lỗi tạo tài khoản hàng loạt: ' . $e->getMessage();
+            header('Location: ?act=danh-sach-nhan-su');
+            exit();
+        }
+    }
+
+    private function generateUsername($staff)
+    {
+        $username = null;
+        if (!empty($staff['phone'])) {
+            $phone = preg_replace('/[^0-9]/', '', $staff['phone']);
+            if (strlen($phone) >= 9) {
+                $username = 'guide' . substr($phone, -6);
+            }
+        }
+
+        if (!$username && !empty($staff['email'])) {
+            $emailParts = explode('@', $staff['email']);
+            $username = preg_replace('/[^a-z0-9]/', '', strtolower($emailParts[0]));
+        }
+
+        if (!$username) {
+            $name = strtolower($staff['full_name']);
+            $name = preg_replace('/[àáạảãâầấậẩẫăằắặẳẵ]/u', 'a', $name);
+            $name = preg_replace('/[èéẹẻẽêềếệểễ]/u', 'e', $name);
+            $name = preg_replace('/[ìíịỉĩ]/u', 'i', $name);
+            $name = preg_replace('/[òóọỏõôồốộổỗơờớợởỡ]/u', 'o', $name);
+            $name = preg_replace('/[ùúụủũưừứựửữ]/u', 'u', $name);
+            $name = preg_replace('/[ỳýỵỷỹ]/u', 'y', $name);
+            $name = preg_replace('/đ/u', 'd', $name);
+            $name = preg_replace('/[^a-z0-9]/', '', $name);
+            $username = 'guide' . $name . rand(100, 999);
+        }
+
+        $originalUsername = $username;
+        $counter = 1;
+        $userModel = new User();
+        while ($userModel->usernameExists($username)) {
+            $username = $originalUsername . $counter;
+            $counter++;
+        }
+
+        return $username;
     }
 }

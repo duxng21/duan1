@@ -23,10 +23,11 @@
                         <div class="row">
                             <?php
                             $stats = [
-                                'Chờ xác nhận' => ['total' => 0, 'revenue' => 0, 'icon' => 'clock', 'color' => 'warning'],
+                                'Giữ chỗ' => ['total' => 0, 'revenue' => 0, 'icon' => 'clock', 'color' => 'warning'],
                                 'Đã đặt cọc' => ['total' => 0, 'revenue' => 0, 'icon' => 'check-circle', 'color' => 'info'],
-                                'Hoàn tất' => ['total' => 0, 'revenue' => 0, 'icon' => 'check-square', 'color' => 'success'],
-                                'Hủy' => ['total' => 0, 'revenue' => 0, 'icon' => 'x-circle', 'color' => 'danger']
+                                'Đã thanh toán' => ['total' => 0, 'revenue' => 0, 'icon' => 'credit-card', 'color' => 'primary'],
+                                'Đã hoàn thành' => ['total' => 0, 'revenue' => 0, 'icon' => 'check-square', 'color' => 'success'],
+                                'Đã hủy' => ['total' => 0, 'revenue' => 0, 'icon' => 'x-circle', 'color' => 'danger']
                             ];
 
                             foreach ($statistics as $stat) {
@@ -91,10 +92,11 @@
                                                 <select name="status" class="form-control"
                                                     onchange="this.form.submit()">
                                                     <option value="">Tất cả trạng thái</option>
-                                                    <option value="Chờ xác nhận" <?= ($_GET['status'] ?? '') == 'Chờ xác nhận' ? 'selected' : '' ?>>Chờ xác nhận</option>
+                                                    <option value="Giữ chỗ" <?= ($_GET['status'] ?? '') == 'Giữ chỗ' ? 'selected' : '' ?>>Giữ chỗ</option>
                                                     <option value="Đã đặt cọc" <?= ($_GET['status'] ?? '') == 'Đã đặt cọc' ? 'selected' : '' ?>>Đã đặt cọc</option>
-                                                    <option value="Hoàn tất" <?= ($_GET['status'] ?? '') == 'Hoàn tất' ? 'selected' : '' ?>>Hoàn tất</option>
-                                                    <option value="Hủy" <?= ($_GET['status'] ?? '') == 'Hủy' ? 'selected' : '' ?>>Hủy</option>
+                                                    <option value="Đã thanh toán" <?= ($_GET['status'] ?? '') == 'Đã thanh toán' ? 'selected' : '' ?>>Đã thanh toán</option>
+                                                    <option value="Đã hoàn thành" <?= ($_GET['status'] ?? '') == 'Đã hoàn thành' ? 'selected' : '' ?>>Đã hoàn thành</option>
+                                                    <option value="Đã hủy" <?= ($_GET['status'] ?? '') == 'Đã hủy' ? 'selected' : '' ?>>Đã hủy</option>
                                                 </select>
                                             </div>
                                             <div class="col-md-6">
@@ -107,6 +109,19 @@
                                                             <i class="feather icon-search"></i>
                                                         </button>
                                                     </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row mt-2">
+                                            <div class="col-md-12">
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox" class="custom-control-input"
+                                                        id="include_cancelled" name="include_cancelled" value="1"
+                                                        <?= ($_GET['include_cancelled'] ?? '0') == '1' ? 'checked' : '' ?>
+                                                        onchange="this.form.submit()">
+                                                    <label class="custom-control-label" for="include_cancelled">
+                                                        <i class="feather icon-eye"></i> Xem booking bị hủy
+                                                    </label>
                                                 </div>
                                             </div>
                                         </div>
@@ -158,13 +173,26 @@
                                                             </td>
                                                             <td>
                                                                 <?php
-                                                                $statusClass = match ($booking['status']) {
-                                                                    'Hoàn tất' => 'badge-success',
-                                                                    'Đã đặt cọc' => 'badge-info',
-                                                                    'Chờ xác nhận' => 'badge-warning',
-                                                                    'Hủy' => 'badge-danger',
-                                                                    default => 'badge-secondary'
-                                                                };
+                                                                switch ($booking['status']) {
+                                                                    case 'Đã hoàn thành':
+                                                                        $statusClass = 'badge-success';
+                                                                        break;
+                                                                    case 'Đã thanh toán':
+                                                                        $statusClass = 'badge-primary';
+                                                                        break;
+                                                                    case 'Đã đặt cọc':
+                                                                        $statusClass = 'badge-info';
+                                                                        break;
+                                                                    case 'Giữ chỗ':
+                                                                        $statusClass = 'badge-warning';
+                                                                        break;
+                                                                    case 'Đã hủy':
+                                                                        $statusClass = 'badge-danger';
+                                                                        break;
+                                                                    default:
+                                                                        $statusClass = 'badge-secondary';
+                                                                        break;
+                                                                }
                                                                 ?>
                                                                 <span
                                                                     class="badge <?= $statusClass ?>"><?= $booking['status'] ?></span>

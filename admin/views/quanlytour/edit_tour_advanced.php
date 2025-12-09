@@ -10,7 +10,8 @@
                 <div class="row breadcrumbs-top">
                     <div class="col-12">
                         <h2 class="content-header-title float-left mb-0">Chỉnh sửa Tour:
-                            <?= htmlspecialchars($tour['tour_name'] ?? 'N/A') ?></h2>
+                            <?= htmlspecialchars($tour['tour_name'] ?? 'N/A') ?>
+                        </h2>
                         <div class="breadcrumb-wrapper col-12">
                             <ol class="breadcrumb">
                                 <li class="breadcrumb-item"><a href="?act=/">Dashboard</a></li>
@@ -531,13 +532,23 @@
                                                         <td>
                                                             <span class="badge badge-info">
                                                                 <?php
-                                                                echo match ($provider['service_type']) {
-                                                                    'Hotel' => 'Khách sạn',
-                                                                    'Restaurant' => 'Nhà hàng',
-                                                                    'Transport' => 'Vận chuyển',
-                                                                    'Flight' => 'Máy bay',
-                                                                    default => $provider['service_type']
-                                                                };
+                                                                switch ($provider['service_type']) {
+                                                                    case 'Hotel':
+                                                                        echo 'Khách sạn';
+                                                                        break;
+                                                                    case 'Restaurant':
+                                                                        echo 'Nhà hàng';
+                                                                        break;
+                                                                    case 'Transport':
+                                                                        echo 'Vận chuyển';
+                                                                        break;
+                                                                    case 'Flight':
+                                                                        echo 'Máy bay';
+                                                                        break;
+                                                                    default:
+                                                                        echo $provider['service_type'];
+                                                                        break;
+                                                                }
                                                                 ?>
                                                             </span>
                                                         </td>

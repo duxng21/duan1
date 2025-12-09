@@ -67,7 +67,6 @@ class SpecialNote
                     gl.phone,
                     gl.email,
                     gl.room_number,
-                    tb.booking_code,
                     u.full_name as creator_name,
                     u2.full_name as resolver_name
                 FROM guest_special_notes gsn
@@ -115,7 +114,6 @@ class SpecialNote
                     gl.phone,
                     gl.email,
                     gl.room_number,
-                    tb.booking_code,
                     tb.schedule_id,
                     u.full_name as creator_name,
                     u2.full_name as resolver_name

@@ -18,11 +18,11 @@ class TourSchedule
                     t.code as tour_code,
                     tc.category_name,
                     COUNT(DISTINCT tb.booking_id) as total_bookings,
-                    COALESCE(SUM(tb.number_of_guests), 0) as total_guests
+                    COALESCE(SUM(COALESCE(tb.num_adults, 0) + COALESCE(tb.num_children, 0) + COALESCE(tb.num_infants, 0)), 0) as total_guests
                 FROM tour_schedules ts
                 LEFT JOIN tours t ON ts.tour_id = t.tour_id
                 LEFT JOIN tour_categories tc ON t.category_id = tc.category_id
-                LEFT JOIN tour_bookings tb ON ts.schedule_id = tb.schedule_id
+                LEFT JOIN bookings tb ON ts.tour_id = tb.tour_id AND ts.departure_date = tb.tour_date AND tb.status != 'Đã hủy'
                 GROUP BY ts.schedule_id
                 ORDER BY ts.departure_date DESC";
         $stmt = $this->conn->prepare($sql);
@@ -35,9 +35,9 @@ class TourSchedule
         $sql = "SELECT 
                     ts.*,
                     COUNT(DISTINCT tb.booking_id) as total_bookings,
-                    COALESCE(SUM(tb.number_of_guests), 0) as total_guests
+                    COALESCE(SUM(COALESCE(tb.num_adults, 0) + COALESCE(tb.num_children, 0) + COALESCE(tb.num_infants, 0)), 0) as total_guests
                 FROM tour_schedules ts
-                LEFT JOIN tour_bookings tb ON ts.schedule_id = tb.schedule_id
+                LEFT JOIN bookings tb ON ts.tour_id = tb.tour_id AND ts.departure_date = tb.tour_date AND tb.status != 'Đã hủy'
                 WHERE ts.tour_id = ?
                 GROUP BY ts.schedule_id
                 ORDER BY ts.departure_date ASC";
@@ -53,10 +53,10 @@ class TourSchedule
                     t.tour_name,
                     t.code as tour_code,
                     COUNT(DISTINCT tb.booking_id) as total_bookings,
-                    COALESCE(SUM(tb.number_of_guests), 0) as total_guests
+                    COALESCE(SUM(COALESCE(tb.num_adults, 0) + COALESCE(tb.num_children, 0) + COALESCE(tb.num_infants, 0)), 0) as total_guests
                 FROM tour_schedules ts
                 LEFT JOIN tours t ON ts.tour_id = t.tour_id
-                LEFT JOIN tour_bookings tb ON ts.schedule_id = tb.schedule_id
+                LEFT JOIN bookings tb ON ts.tour_id = tb.tour_id AND ts.departure_date = tb.tour_date AND tb.status != 'Đã hủy'
                 WHERE ts.schedule_id = ?
                 GROUP BY ts.schedule_id";
         $stmt = $this->conn->prepare($sql);
@@ -101,6 +101,92 @@ class TourSchedule
         return $stmt->fetchColumn() > 0;
     }
 
+    // ==================== UC2: DỊCH VỤ LIÊN KẾT VỚI LỊCH ====================
+
+    public function getServices($schedule_id)
+    {
+        $sql = "SELECT ssl.*, ts.supplier_name, ts.supplier_type, ts.phone, ts.email
+                FROM schedule_service_links ssl
+                INNER JOIN tour_suppliers ts ON ssl.supplier_id = ts.supplier_id
+                WHERE ssl.schedule_id = ? AND ssl.status = 1
+                ORDER BY ssl.service_date ASC, ts.supplier_type ASC";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$schedule_id]);
+        return $stmt->fetchAll();
+    }
+
+    public function linkService($schedule_id, $supplier_id, $data)
+    {
+        $sql = "INSERT INTO schedule_service_links (
+                    schedule_id, supplier_id, service_type, service_date, service_time,
+                    service_description, unit_price, quantity, currency,
+                    cancellation_deadline, cancellation_fee, contact_person, contact_phone,
+                    notes, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
+
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([
+            $schedule_id,
+            $supplier_id,
+            $data['service_type'] ?? 'other',
+            $data['service_date'] ?? null,
+            $data['service_time'] ?? null,
+            $data['service_description'] ?? null,
+            $data['unit_price'] ?? 0,
+            $data['quantity'] ?? 1,
+            $data['currency'] ?? 'VND',
+            $data['cancellation_deadline'] ?? null,
+            $data['cancellation_fee'] ?? 0,
+            $data['contact_person'] ?? null,
+            $data['contact_phone'] ?? null,
+            $data['notes'] ?? null
+        ]);
+    }
+
+    public function updateService($link_id, $data)
+    {
+        $sql = "UPDATE schedule_service_links SET
+                    service_type = ?,
+                    service_date = ?,
+                    service_time = ?,
+                    service_description = ?,
+                    unit_price = ?,
+                    quantity = ?,
+                    currency = ?,
+                    cancellation_deadline = ?,
+                    cancellation_fee = ?,
+                    contact_person = ?,
+                    contact_phone = ?,
+                    notes = ?,
+                    status = ?
+                WHERE link_id = ?";
+
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([
+            $data['service_type'] ?? 'other',
+            $data['service_date'] ?? null,
+            $data['service_time'] ?? null,
+            $data['service_description'] ?? null,
+            $data['unit_price'] ?? 0,
+            $data['quantity'] ?? 1,
+            $data['currency'] ?? 'VND',
+            $data['cancellation_deadline'] ?? null,
+            $data['cancellation_fee'] ?? 0,
+            $data['contact_person'] ?? null,
+            $data['contact_phone'] ?? null,
+            $data['notes'] ?? null,
+            isset($data['status']) ? (int) $data['status'] : 1,
+            $link_id
+        ]);
+    }
+
+    public function unlinkService($link_id)
+    {
+        $sql = "DELETE FROM schedule_service_links WHERE link_id = ?";
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([$link_id]);
+    }
+
     public function createSchedule($data)
     {
         try {
@@ -111,9 +197,11 @@ class TourSchedule
 
             $sql = "INSERT INTO tour_schedules (
                         tour_id, departure_date, return_date, meeting_point, 
-                        meeting_time, max_participants, current_participants, 
+                        meeting_time, customer_name, customer_phone, customer_email,
+                        max_participants, current_participants, 
+                        num_adults, num_children, num_infants,
                         price_adult, price_child, status, notes
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([
@@ -122,8 +210,14 @@ class TourSchedule
                 $data['return_date'],
                 $data['meeting_point'] ?? '',
                 $data['meeting_time'] ?? '',
+                $data['customer_name'] ?? null,
+                $data['customer_phone'] ?? null,
+                $data['customer_email'] ?? null,
                 $data['max_participants'] ?? 0,
                 0, // current_participants
+                $data['num_adults'] ?? 0,
+                $data['num_children'] ?? 0,
+                $data['num_infants'] ?? 0,
                 $data['price_adult'] ?? 0,
                 $data['price_child'] ?? 0,
                 $data['status'] ?? 'Open',
@@ -154,7 +248,13 @@ class TourSchedule
                     return_date = ?,
                     meeting_point = ?,
                     meeting_time = ?,
+                    customer_name = ?,
+                    customer_phone = ?,
+                    customer_email = ?,
                     max_participants = ?,
+                    num_adults = ?,
+                    num_children = ?,
+                    num_infants = ?,
                     price_adult = ?,
                     price_child = ?,
                     status = ?,
@@ -167,7 +267,13 @@ class TourSchedule
             $data['return_date'] ?: null,
             $data['meeting_point'] ?: null,
             $data['meeting_time'] ?: null,
+            $data['customer_name'] ?: null,
+            $data['customer_phone'] ?: null,
+            $data['customer_email'] ?: null,
             (int) ($data['max_participants'] ?? 0),
+            (int) ($data['num_adults'] ?? 0),
+            (int) ($data['num_children'] ?? 0),
+            (int) ($data['num_infants'] ?? 0),
             (float) ($data['price_adult'] ?? 0),
             (float) ($data['price_child'] ?? 0),
             $data['status'] ?? 'Open',
@@ -184,15 +290,41 @@ class TourSchedule
             throw new Exception("Không thể xóa lịch khởi hành khi tour đang diễn ra! Vui lòng đợi tour hoàn thành.");
         }
 
-        // Kiểm tra xem có booking nào chưa
-        $sql = "SELECT COUNT(*) FROM tour_bookings WHERE schedule_id = ?";
+        // Kiểm tra xem có booking nào chưa bị hủy - join bằng tour_id và tour_date (departure_date)
+        $sql = "SELECT COUNT(*) FROM bookings b 
+                INNER JOIN tour_schedules ts ON ts.tour_id = b.tour_id AND ts.departure_date = b.tour_date
+                WHERE ts.schedule_id = ? AND b.status != 'Đã hủy'";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([$id]);
 
-        if ($stmt->fetchColumn() > 0) {
-            throw new Exception("Không thể xóa lịch khởi hành đã có đặt tour!");
+        $activeBookingCount = $stmt->fetchColumn();
+
+        if ($activeBookingCount > 0) {
+            // Có booking chưa bị hủy - không cho xóa
+            throw new Exception("Không thể xóa lịch khởi hành đã có đặt tour! Vui lòng hủy tất cả booking liên kết trước.");
         }
 
+        // Nếu có booking bị hủy, hãy xóa chúng trước (optional - để sạch database)
+        $sql = "DELETE FROM booking_details WHERE booking_id IN (
+                SELECT b.booking_id FROM bookings b
+                INNER JOIN tour_schedules ts ON ts.tour_id = b.tour_id AND ts.departure_date = b.tour_date
+                WHERE ts.schedule_id = ? AND b.status = 'Đã hủy'
+            )";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$id]);
+
+        // Xóa booking bị hủy - MySQL syntax
+        $sql = "DELETE FROM bookings WHERE booking_id IN (
+                SELECT sub.booking_id FROM (
+                    SELECT b.booking_id FROM bookings b
+                    INNER JOIN tour_schedules ts ON ts.tour_id = b.tour_id AND ts.departure_date = b.tour_date
+                    WHERE ts.schedule_id = ? AND b.status = 'Đã hủy'
+                ) AS sub
+            )";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$id]);
+
+        // Xóa schedule
         $sql = "DELETE FROM tour_schedules WHERE schedule_id = ?";
         $stmt = $this->conn->prepare($sql);
         return $stmt->execute([$id]);
@@ -224,6 +356,29 @@ class TourSchedule
         // Không cho phép chuyển từ Cancelled sang In Progress
         if ($current_status === 'Cancelled' && $new_status === 'In Progress') {
             throw new Exception("Không thể bắt đầu tour đã bị hủy!");
+        }
+
+        // CHỈ CHO PHÉP HOÀN THÀNH NẾU TẤT CẢ HDV ĐÃ HOÀN THÀNH
+        if ($new_status === 'Completed') {
+            $staff = $this->getScheduleStaff($schedule_id);
+            $guides = array_filter($staff, function ($s) {
+                return strtolower($s['staff_type'] ?? '') === 'guide';
+            });
+
+            if (!empty($guides)) {
+                // Kiểm tra xem tất cả HDV đã check-in chưa
+                foreach ($guides as $guide) {
+                    if (empty($guide['check_in_time'])) {
+                        throw new Exception("Chưa thể hoàn thành tour! Hướng dẫn viên '{$guide['full_name']}' chưa check-in hoàn tất lịch trình.");
+                    }
+                }
+
+                // Kiểm tra xem có nhật ký tour từ HDV chưa
+                $logs = $this->getJourneyLogs($schedule_id);
+                if (empty($logs)) {
+                    throw new Exception("Chưa thể hoàn thành tour! Chưa có nhật ký hành trình nào từ hướng dẫn viên. Vui lòng yêu cầu HDV ghi nhật ký trước khi kết thúc.");
+                }
+            }
         }
 
         $sql = "UPDATE tour_schedules SET status = ? WHERE schedule_id = ?";
@@ -427,9 +582,64 @@ class TourSchedule
             $sql = "UPDATE schedule_staff SET check_in_time = NOW() WHERE schedule_id = ? AND staff_id = ?";
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([$schedule_id, $staff_id]);
-            return $stmt->rowCount() > 0;
+
+            if ($stmt->rowCount() > 0) {
+                // Kiểm tra xem tất cả HDV đã check-in chưa
+                $this->autoCompleteIfAllCheckedIn($schedule_id);
+                return true;
+            }
+            return false;
         } catch (Exception $e) {
             return false; // bảng chưa có cột hoặc lỗi, bỏ qua
+        }
+    }
+
+    /**
+     * Tự động chuyển tour sang "Completed" nếu tất cả HDV đã check-in và có nhật ký
+     */
+    private function autoCompleteIfAllCheckedIn($schedule_id)
+    {
+        try {
+            // Lấy schedule hiện tại
+            $schedule = $this->getScheduleById($schedule_id);
+
+            // Chỉ tự động complete nếu đang ở trạng thái "In Progress"
+            if (!$schedule || $schedule['status'] !== 'In Progress') {
+                return false;
+            }
+
+            // Lấy tất cả staff của schedule
+            $staff = $this->getScheduleStaff($schedule_id);
+            $guides = array_filter($staff, function ($s) {
+                return strtolower($s['staff_type'] ?? '') === 'guide';
+            });
+
+            // Nếu không có HDV, không tự động complete
+            if (empty($guides)) {
+                return false;
+            }
+
+            // Kiểm tra tất cả HDV đã check-in chưa
+            foreach ($guides as $guide) {
+                if (empty($guide['check_in_time'])) {
+                    return false; // Còn HDV chưa check-in
+                }
+            }
+
+            // Kiểm tra có nhật ký không
+            $logs = $this->getJourneyLogs($schedule_id);
+            if (empty($logs)) {
+                return false; // Chưa có nhật ký
+            }
+
+            // Tất cả điều kiện đã thỏa mãn, tự động chuyển sang Completed
+            $sql = "UPDATE tour_schedules SET status = 'Completed' WHERE schedule_id = ?";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([$schedule_id]);
+
+            return true;
+        } catch (Exception $e) {
+            return false;
         }
     }
 
@@ -439,7 +649,13 @@ class TourSchedule
             $sql = "INSERT INTO schedule_journey_logs (schedule_id, staff_id, log_text, created_at) VALUES (?,?,?,NOW())";
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([$schedule_id, $staff_id, $log_text]);
-            return $this->conn->lastInsertId();
+
+            if ($this->conn->lastInsertId()) {
+                // Kiểm tra tự động complete sau khi thêm nhật ký
+                $this->autoCompleteIfAllCheckedIn($schedule_id);
+                return $this->conn->lastInsertId();
+            }
+            return false;
         } catch (Exception $e) {
             return false; // nếu bảng chưa tồn tại
         }
@@ -637,5 +853,94 @@ class TourSchedule
         } catch (Exception $e) {
             // bỏ qua không chặn luồng chính
         }
+    }
+
+    // ==================== PHƯƠNG THỨC HỖ TRỢ HỒ SƠ HDV ====================
+
+    /**
+     * Đếm số tour sắp tới của HDV
+     */
+    public function countUpcomingToursForStaff($staff_id, $from_date)
+    {
+        $sql = "SELECT COUNT(DISTINCT ts.schedule_id) as total
+                FROM tour_schedules ts
+                INNER JOIN schedule_staff ss ON ts.schedule_id = ss.schedule_id
+                WHERE ss.staff_id = ? 
+                AND ts.departure_date >= ?
+                AND ts.status != 'Cancelled'";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$staff_id, $from_date]);
+        $result = $stmt->fetch();
+        return $result ? (int) $result['total'] : 0;
+    }
+
+    /**
+     * Đếm số tour đã hoàn thành trong tháng của HDV
+     */
+    public function countCompletedToursForStaff($staff_id, $month)
+    {
+        // $month format: 'Y-m' (e.g., '2025-01')
+        $sql = "SELECT COUNT(DISTINCT ts.schedule_id) as total
+                FROM tour_schedules ts
+                INNER JOIN schedule_staff ss ON ts.schedule_id = ss.schedule_id
+                WHERE ss.staff_id = ? 
+                AND DATE_FORMAT(ts.departure_date, '%Y-%m') = ?
+                AND ts.status = 'Completed'";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$staff_id, $month]);
+        $result = $stmt->fetch();
+        return $result ? (int) $result['total'] : 0;
+    }
+
+    /**
+     * Lấy các tour sắp khởi hành của HDV trong N ngày tới
+     */
+    public function getUpcomingToursForStaff($staff_id, $days = 7)
+    {
+        $from_date = date('Y-m-d');
+        $to_date = date('Y-m-d', strtotime("+$days days"));
+
+        $sql = "SELECT 
+                    ts.schedule_id,
+                    ts.tour_id,
+                    ts.departure_date,
+                    ts.return_date,
+                    ts.status,
+                    t.tour_name,
+                    t.code as tour_code
+                FROM tour_schedules ts
+                INNER JOIN schedule_staff ss ON ts.schedule_id = ss.schedule_id
+                INNER JOIN tours t ON ts.tour_id = t.tour_id
+                WHERE ss.staff_id = ? 
+                AND ts.departure_date BETWEEN ? AND ?
+                AND ts.status != 'Cancelled'
+                ORDER BY ts.departure_date ASC";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$staff_id, $from_date, $to_date]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Lấy các tour đang diễn ra của HDV
+     */
+    public function getInProgressToursForStaff($staff_id)
+    {
+        $sql = "SELECT 
+                    ts.schedule_id,
+                    ts.tour_id,
+                    ts.departure_date,
+                    ts.return_date,
+                    ts.status,
+                    t.tour_name,
+                    t.code as tour_code
+                FROM tour_schedules ts
+                INNER JOIN schedule_staff ss ON ts.schedule_id = ss.schedule_id
+                INNER JOIN tours t ON ts.tour_id = t.tour_id
+                WHERE ss.staff_id = ? 
+                AND ts.status = 'In Progress'
+                ORDER BY ts.departure_date ASC";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$staff_id]);
+        return $stmt->fetchAll();
     }
 }
