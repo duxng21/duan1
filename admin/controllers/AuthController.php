@@ -99,23 +99,10 @@ class AuthController
         session_regenerate_id(true);
         $_SESSION['user_id'] = $user['user_id'];
         $_SESSION['username'] = $user['username'];
-        $_SESSION['full_name'] = $user['full_name'];
         $_SESSION['role_code'] = $user['role_code'];
-        $_SESSION['role_name'] = $user['role_name'];
         $_SESSION['staff_id'] = $user['staff_id'];
         logUserActivity('login', 'auth', $user['user_id'], 'Đăng nhập');
-
-        // Thông báo chào mừng
-        $_SESSION['success'] = 'Chào mừng ' . htmlspecialchars($user['full_name']) . '!';
-
-        // Điều hướng theo role
-        if ($user['role_code'] === 'GUIDE') {
-            // Hướng dẫn viên -> Dashboard HDV
-            header('Location: admin/index.php?act=home-guide');
-        } else {
-            // Admin/Manager -> Dashboard quản trị
-            header('Location: admin/index.php?act=dashboard');
-        }
+        header('Location: index.php');
         exit();
     }
 
@@ -127,9 +114,10 @@ class AuthController
         session_unset();
         session_destroy();
         session_start();
-        $_SESSION['success'] = 'Đã đăng xuất thành công.';
-        // Chuyển về trang đăng nhập gốc
-        header('Location: ../index.php?act=login');
+        $_SESSION['success'] = 'Đã đăng xuất.';
+        // Chuyển về trang đăng nhập gốc (root) dùng URL tuyệt đối tránh lỗi tương đối
+        $loginUrl = defined('ROOT_URL') ? ROOT_URL . 'index.php?act=login' : '../index.php?act=login';
+        header('Location: ' . $loginUrl);
         exit();
     }
 

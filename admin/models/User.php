@@ -9,7 +9,7 @@ class User
 
     public function findByUsername($username)
     {
-        $sql = 'SELECT u.*, r.role_code, r.role_name FROM users u INNER JOIN roles r ON u.role_id = r.role_id WHERE u.username = ? LIMIT 1';
+        $sql = 'SELECT u.*, r.role_code FROM users u INNER JOIN roles r ON u.role_id = r.role_id WHERE u.username = ? LIMIT 1';
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([$username]);
         return $stmt->fetch();

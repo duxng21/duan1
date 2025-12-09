@@ -172,28 +172,20 @@
                                                 </td>
                                                 <td>
                                                     <?php
-                                                    switch ($assignment['staff_type']) {
-                                                        case 'Guide':
-                                                            $typeClass = 'badge-primary';
-                                                            $typeName = 'HDV';
-                                                            break;
-                                                        case 'Driver':
-                                                            $typeClass = 'badge-info';
-                                                            $typeName = 'Tài xế';
-                                                            break;
-                                                        case 'Support':
-                                                            $typeClass = 'badge-success';
-                                                            $typeName = 'Hỗ trợ';
-                                                            break;
-                                                        case 'Manager':
-                                                            $typeClass = 'badge-warning';
-                                                            $typeName = 'Quản lý';
-                                                            break;
-                                                        default:
-                                                            $typeClass = 'badge-secondary';
-                                                            $typeName = $assignment['staff_type'];
-                                                            break;
-                                                    }
+                                                    $typeClass = match ($assignment['staff_type']) {
+                                                        'Guide' => 'badge-primary',
+                                                        'Driver' => 'badge-info',
+                                                        'Support' => 'badge-success',
+                                                        'Manager' => 'badge-warning',
+                                                        default => 'badge-secondary'
+                                                    };
+                                                    $typeName = match ($assignment['staff_type']) {
+                                                        'Guide' => 'HDV',
+                                                        'Driver' => 'Tài xế',
+                                                        'Support' => 'Hỗ trợ',
+                                                        'Manager' => 'Quản lý',
+                                                        default => $assignment['staff_type']
+                                                    };
                                                     ?>
                                                     <span class="badge <?= $typeClass ?>"><?= $typeName ?></span>
                                                 </td>
@@ -227,32 +219,22 @@
                                                 </td>
                                                 <td>
                                                     <?php
-                                                    switch ($assignment['schedule_status']) {
-                                                        case 'Open':
-                                                            $statusClass = 'badge-success';
-                                                            $statusText = 'Mở đặt';
-                                                            break;
-                                                        case 'Full':
-                                                            $statusClass = 'badge-warning';
-                                                            $statusText = 'Đã đầy';
-                                                            break;
-                                                        case 'Confirmed':
-                                                            $statusClass = 'badge-primary';
-                                                            $statusText = 'Đã xác nhận';
-                                                            break;
-                                                        case 'Completed':
-                                                            $statusClass = 'badge-secondary';
-                                                            $statusText = 'Hoàn thành';
-                                                            break;
-                                                        case 'Cancelled':
-                                                            $statusClass = 'badge-danger';
-                                                            $statusText = 'Đã hủy';
-                                                            break;
-                                                        default:
-                                                            $statusClass = 'badge-light';
-                                                            $statusText = $assignment['schedule_status'];
-                                                            break;
-                                                    }
+                                                    $statusClass = match ($assignment['schedule_status']) {
+                                                        'Open' => 'badge-success',
+                                                        'Full' => 'badge-warning',
+                                                        'Confirmed' => 'badge-primary',
+                                                        'Completed' => 'badge-secondary',
+                                                        'Cancelled' => 'badge-danger',
+                                                        default => 'badge-light'
+                                                    };
+                                                    $statusText = match ($assignment['schedule_status']) {
+                                                        'Open' => 'Mở đặt',
+                                                        'Full' => 'Đã đầy',
+                                                        'Confirmed' => 'Đã xác nhận',
+                                                        'Completed' => 'Hoàn thành',
+                                                        'Cancelled' => 'Đã hủy',
+                                                        default => $assignment['schedule_status']
+                                                    };
                                                     ?>
                                                     <span class="badge <?= $statusClass ?>"><?= $statusText ?></span>
                                                 </td>

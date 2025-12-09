@@ -17,14 +17,18 @@ $act = isset($_GET['act']) ? trim($_GET['act']) : '/';
 
 switch ($act) {
     case '/':
-        // Bắt buộc đăng xuất và đăng nhập lại khi vào trang chủ
-        if (isset($_SESSION['user_id'])) {
-            session_unset();
-            session_destroy();
-            session_start();
+        // Chỉ hiển thị trang chủ sau khi đăng nhập.
+        // Nếu chưa đăng nhập -> chuyển sang form login.
+        // Nếu đã đăng nhập và là ADMIN -> vào khu vực admin.
+        if (!isset($_SESSION['user_id'])) {
+            (new AuthController())->login();
+            break;
         }
-        // Chuyển đến trang login
-        (new AuthController())->login();
+        if (isAdmin()) {
+            header('Location: admin/index.php');
+            exit();
+        }
+        (new ProductController())->Home();
         break;
     case 'login':
         (new AuthController())->login();

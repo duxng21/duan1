@@ -12,7 +12,7 @@
     <meta name="keywords"
         content="admin template, Vuexy admin template, dashboard template, flat admin template, responsive admin template, web app">
     <meta name="author" content="PIXINVENT">
-    <title><?php echo (function_exists('isGuide') && isGuide()) ? 'HDV Panel' : 'Admin Panel'; ?></title>
+    <title>Panel</title>
     <link rel="apple-touch-icon" href="views/assetz/app-assets/images/ico/apple-icon-120.png">
     <link rel="shortcut icon" type="image/x-icon" href="views/assetz/app-assets/images/ico/favicon.ico">
     <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,500,600" rel="stylesheet">
@@ -54,7 +54,6 @@
 
     <!-- BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="views/assetz/assets/css/style.css">
-    <link rel="stylesheet" type="text/css" href="views/assetz/assets/css/custom-style.css">
     <!-- END: Custom CSS-->
 
 </head>
@@ -62,9 +61,8 @@
 
 <!-- BEGIN: Body-->
 
-<body
-    class="vertical-layout vertical-menu-modern 2-columns navbar-floating footer-static <?php echo (function_exists('isGuide') && isGuide()) ? 'guide-theme' : 'admin-theme'; ?>"
-    data-open="click" data-menu="vertical-menu-modern" data-col="2-columns">
+<body class="vertical-layout vertical-menu-modern 2-columns  navbar-floating footer-static  " data-open="click"
+    data-menu="vertical-menu-modern" data-col="2-columns">
 
     <!-- BEGIN: Header-->
     <nav class="header-navbar navbar-expand-lg navbar navbar-with-menu floating-nav navbar-light navbar-shadow">
@@ -128,9 +126,8 @@
                         <li class="dropdown dropdown-user nav-item"><a
                                 class="dropdown-toggle nav-link dropdown-user-link" href="#" data-toggle="dropdown">
                                 <div class="user-nav d-sm-flex d-none"><span
-                                        class="user-name text-bold-600"><?= htmlspecialchars($_SESSION['full_name'] ?? $_SESSION['username'] ?? 'User') ?></span><span
-                                        class="user-status"><?= htmlspecialchars($_SESSION['role_name'] ?? 'Admin') ?></span>
-                                </div><span><img class="round"
+                                        class="user-name text-bold-600">name</span><span
+                                        class="user-status">Admin</span></div><span><img class="round"
                                         src="views/assetz/app-assets/images/portrait/small/avatar-s-11.jpg" alt="avatar"
                                         height="40" width="40"></span>
                             </a>

@@ -117,26 +117,14 @@ function notifyServiceAssignment($schedule_id, $service_id)
                     schedule_id, title, message, status
                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        switch ($service['service_type']) {
-            case 'Hotel':
-                $serviceTypeVN = 'Khách sạn';
-                break;
-            case 'Restaurant':
-                $serviceTypeVN = 'Nhà hàng';
-                break;
-            case 'Transport':
-                $serviceTypeVN = 'Phương tiện';
-                break;
-            case 'Flight':
-                $serviceTypeVN = 'Vé máy bay';
-                break;
-            case 'Insurance':
-                $serviceTypeVN = 'Bảo hiểm';
-                break;
-            default:
-                $serviceTypeVN = 'Dịch vụ';
-                break;
-        }
+        $serviceTypeVN = match ($service['service_type']) {
+            'Hotel' => 'Khách sạn',
+            'Restaurant' => 'Nhà hàng',
+            'Transport' => 'Phương tiện',
+            'Flight' => 'Vé máy bay',
+            'Insurance' => 'Bảo hiểm',
+            default => 'Dịch vụ'
+        };
 
         $title = "Đặt {$serviceTypeVN}: {$service['service_name']}";
         $message = "Tour {$schedule['tour_code']} - {$schedule['tour_name']} đã đặt {$serviceTypeVN} của bạn\n";

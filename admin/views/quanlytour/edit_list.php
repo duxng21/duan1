@@ -74,52 +74,35 @@
                                                 min="0" required>
                                         </div>
 
+
+
                                         <div class="form-group">
-                                            <label for="short_intro">Giới thiệu ngắn</label>
-                                            <textarea name="short_intro" id="short_intro" class="form-control" rows="2"
-                                                placeholder="Giới thiệu ngắn gọn về tour (1-2 câu)"><?= htmlspecialchars($tour['short_intro'] ?? '') ?></textarea>
+                                            <label for="description_short">Mô tả ngắn</label>
+                                            <textarea name="description_short" id="description_short"
+                                                class="form-control" rows="2"
+                                                placeholder="Mô tả ngắn gọn về tour"><?= htmlspecialchars($tour['description_short'] ?? '') ?></textarea>
                                         </div>
 
                                         <div class="form-group">
-                                            <label for="inclusions">Bao gồm</label>
-                                            <textarea name="inclusions" id="inclusions" class="form-control" rows="3"
-                                                placeholder="Những gì bao gồm trong tour (mỗi mục 1 dòng)"><?= htmlspecialchars($tour['inclusions'] ?? '') ?></textarea>
-                                            <small class="text-muted">VD: Vé máy bay, Khách sạn 4 sao, Ăn
-                                                sáng...</small>
+                                            <label for="description_full">Mô tả chi tiết</label>
+                                            <textarea name="description_full" id="description_full" class="form-control"
+                                                rows="4"
+                                                placeholder="Mô tả đầy đủ về tour"><?= htmlspecialchars($tour['description_full'] ?? '') ?></textarea>
                                         </div>
 
                                         <div class="form-group">
-                                            <label for="exclusions">Không bao gồm</label>
-                                            <textarea name="exclusions" id="exclusions" class="form-control" rows="3"
-                                                placeholder="Những gì không bao gồm trong tour"><?= htmlspecialchars($tour['exclusions'] ?? '') ?></textarea>
-                                            <small class="text-muted">VD: Chi phí cá nhân, Bảo hiểm du lịch...</small>
-                                        </div>
-
-                                        <div class="form-group">
-                                            <label for="base_duration">Thời lượng chuẩn (ngày)</label>
-                                            <input type="number" name="base_duration" id="base_duration"
+                                            <label for="duration_days">Thời lượng (số ngày)</label>
+                                            <input type="number" name="duration_days" id="duration_days"
                                                 class="form-control" placeholder="VD: 3"
-                                                value="<?= $tour['base_duration'] ?? '' ?>" min="1">
+                                                value="<?= $tour['duration_days'] ?? '' ?>" min="1">
                                         </div>
 
                                         <div class="form-group">
-                                            <label for="start_location">Điểm xuất phát</label>
+                                            <label for="start_location">Điểm khởi hành</label>
                                             <input type="text" name="start_location" id="start_location"
                                                 class="form-control" placeholder="VD: Hà Nội"
                                                 value="<?= htmlspecialchars($tour['start_location'] ?? '') ?>">
                                         </div>
-
-                                        <div class="form-group">
-                                            <label for="difficulty">Độ khó</label>
-                                            <select name="difficulty" id="difficulty" class="form-control">
-                                                <option value="">-- Chọn độ khó --</option>
-                                                <option value="Easy" <?= ($tour['difficulty'] ?? '') == 'Easy' ? 'selected' : '' ?>>Dễ (Easy)</option>
-                                                <option value="Moderate" <?= ($tour['difficulty'] ?? '') == 'Moderate' ? 'selected' : '' ?>>Trung bình (Moderate)</option>
-                                                <option value="Challenging" <?= ($tour['difficulty'] ?? '') == 'Challenging' ? 'selected' : '' ?>>Khó (Challenging)</option>
-                                            </select>
-                                        </div>
-
-
 
                                         <div class="form-group">
                                             <label for="status">Trạng thái</label>

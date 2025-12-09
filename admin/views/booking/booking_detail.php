@@ -27,35 +27,14 @@
                             <div class="card-header">
                                 <h4 class="card-title"><i class="feather icon-file-text"></i> Thông tin booking</h4>
                                 <div>
-                                    <a href="?act=danh-sach-khach&booking_id=<?= $booking['booking_id'] ?>"
-                                        class="btn btn-info btn-sm mr-2" title="Danh sách khách">
-                                        <i class="feather icon-users"></i> Danh sách khách
-                                    </a>
-                                    <button type="button" class="btn btn-secondary btn-sm mr-2"
-                                        onclick="location.reload()" title="Làm mới dữ liệu">
-                                        <i class="feather icon-refresh-cw"></i> Làm mới
-                                    </button>
                                     <?php
-                                    switch ($booking['status']) {
-                                        case 'Đã hoàn thành':
-                                            $statusClass = 'badge-success';
-                                            break;
-                                        case 'Đã thanh toán':
-                                            $statusClass = 'badge-primary';
-                                            break;
-                                        case 'Đã đặt cọc':
-                                            $statusClass = 'badge-info';
-                                            break;
-                                        case 'Giữ chỗ':
-                                            $statusClass = 'badge-warning';
-                                            break;
-                                        case 'Đã hủy':
-                                            $statusClass = 'badge-danger';
-                                            break;
-                                        default:
-                                            $statusClass = 'badge-secondary';
-                                            break;
-                                    }
+                                    $statusClass = match ($booking['status']) {
+                                        'Hoàn tất' => 'badge-success',
+                                        'Đã đặt cọc' => 'badge-info',
+                                        'Chờ xác nhận' => 'badge-warning',
+                                        'Hủy' => 'badge-danger',
+                                        default => 'badge-secondary'
+                                    };
                                     ?>
                                     <span class="badge <?= $statusClass ?> badge-lg"><?= $booking['status'] ?></span>
                                 </div>
@@ -90,15 +69,6 @@
                                                     <span class="text-primary">
                                                         <i class="feather icon-calendar"></i>
                                                         <?= date('d/m/Y', strtotime($booking['tour_date'])) ?>
-                                                    </span>
-                                                </dd>
-                                            <?php endif; ?>
-                                            <?php if (!empty($booking['schedule_return_date'])): ?>
-                                                <dt class="col-sm-5">Ngày kết thúc:</dt>
-                                                <dd class="col-sm-7">
-                                                    <span class="text-info">
-                                                        <i class="feather icon-calendar"></i>
-                                                        <?= date('d/m/Y', strtotime($booking['schedule_return_date'])) ?>
                                                     </span>
                                                 </dd>
                                             <?php endif; ?>
@@ -186,176 +156,6 @@
                                 </div>
                             </div>
                         <?php endif; ?>
-
-                        <!-- Thông tin lịch khởi hành (được lấy từ schedule) -->
-                        <?php if (!empty($booking['schedule_id'])): ?>
-                            <div class="card border-left-info">
-                                <div class="card-header bg-light">
-                                    <h4 class="card-title mb-0">
-                                        <i class="feather icon-map"></i> Thông tin lịch khởi hành (từ lịch trình)
-                                    </h4>
-                                    <small class="text-muted d-block mt-1">Các thông tin này được lấy trực tiếp từ lịch khởi
-                                        hành và tự động cập nhật</small>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <dl class="row">
-                                                <dt class="col-sm-5">Điểm tập trung:</dt>
-                                                <dd class="col-sm-7">
-                                                    <strong><?= htmlspecialchars($booking['schedule_meeting_point'] ?? 'N/A') ?></strong>
-                                                </dd>
-                                                <dt class="col-sm-5">Giờ tập trung:</dt>
-                                                <dd class="col-sm-7">
-                                                    <?= $booking['schedule_meeting_time'] ?? 'N/A' ?>
-                                                </dd>
-                                                <dt class="col-sm-5">Chỗ ở (liên hệ):</dt>
-                                                <dd class="col-sm-7">
-                                                    <strong><?= htmlspecialchars($booking['schedule_customer_name'] ?? 'N/A') ?></strong><br>
-                                                    <small>
-                                                        <i class="feather icon-phone"></i>
-                                                        <?= htmlspecialchars($booking['schedule_customer_phone'] ?? 'N/A') ?>
-                                                    </small>
-                                                </dd>
-                                            </dl>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <dl class="row">
-                                                <dt class="col-sm-5">Số chỗ tối đa:</dt>
-                                                <dd class="col-sm-7">
-                                                    <span
-                                                        class="badge badge-info"><?= $booking['schedule_max_participants'] ?? 0 ?>
-                                                        chỗ</span>
-                                                </dd>
-                                                <dt class="col-sm-5">Trạng thái lịch:</dt>
-                                                <dd class="col-sm-7">
-                                                    <?php
-                                                    $scheduleStatus = $booking['schedule_status'] ?? 'N/A';
-                                                    switch ($scheduleStatus) {
-                                                        case 'Open':
-                                                            $statusClass = 'badge-success';
-                                                            $statusText = 'Mở đặt';
-                                                            break;
-                                                        case 'Full':
-                                                            $statusClass = 'badge-warning';
-                                                            $statusText = 'Đầy chỗ';
-                                                            break;
-                                                        case 'Confirmed':
-                                                            $statusClass = 'badge-primary';
-                                                            $statusText = 'Đã xác nhận';
-                                                            break;
-                                                        case 'In Progress':
-                                                            $statusClass = 'badge-info';
-                                                            $statusText = 'Đang diễn ra';
-                                                            break;
-                                                        case 'Completed':
-                                                            $statusClass = 'badge-secondary';
-                                                            $statusText = 'Hoàn thành';
-                                                            break;
-                                                        case 'Cancelled':
-                                                            $statusClass = 'badge-danger';
-                                                            $statusText = 'Đã hủy';
-                                                            break;
-                                                        default:
-                                                            $statusClass = 'badge-light';
-                                                            $statusText = 'Không xác định';
-                                                            break;
-                                                    }
-                                                    ?>
-                                                    <span class="badge <?= $statusClass ?>"><?= $statusText ?></span>
-                                                </dd>
-                                                <dt class="col-sm-5">Giá lịch:</dt>
-                                                <dd class="col-sm-7">
-                                                    NL:
-                                                    <?= number_format($booking['schedule_price_adult'] ?? 0, 0, ',', '.') ?>
-                                                    đ<br>
-                                                    TE:
-                                                    <?= number_format($booking['schedule_price_child'] ?? 0, 0, ',', '.') ?>
-                                                    đ
-                                                </dd>
-                                            </dl>
-                                        </div>
-                                    </div>
-                                    <?php if (!empty($booking['schedule_notes'])): ?>
-                                        <hr>
-                                        <h6>Ghi chú lịch:</h6>
-                                        <div class="alert alert-light">
-                                            <?= nl2br(htmlspecialchars($booking['schedule_notes'])) ?>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        <?php endif; ?>
-
-                        <!-- Danh sách khách trong đoàn -->
-                        <?php if (!empty($groupMembers)): ?>
-                            <div class="card">
-                                <div class="card-header">
-                                    <h4 class="card-title"><i class="feather icon-users"></i> Danh sách khách trong đoàn
-                                    </h4>
-                                    <span class="badge badge-info">Tổng: <?= count($groupMembers) ?> thành viên</span>
-                                </div>
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered table-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th>STT</th>
-                                                    <th>Họ tên</th>
-                                                    <th>SĐT</th>
-                                                    <th>Email</th>
-                                                    <th>CMND/CCCD</th>
-                                                    <th>Ngày sinh</th>
-                                                    <th>Ghi chú</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php foreach ($groupMembers as $index => $member): ?>
-                                                    <tr>
-                                                        <td><?= $index + 1 ?></td>
-                                                        <td><strong><?= htmlspecialchars($member['full_name']) ?></strong></td>
-                                                        <td>
-                                                            <?php if (!empty($member['phone'])): ?>
-                                                                <a href="tel:<?= $member['phone'] ?>">
-                                                                    <?= htmlspecialchars($member['phone']) ?>
-                                                                </a>
-                                                            <?php else: ?>
-                                                                <span class="text-muted">-</span>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                        <td>
-                                                            <?php if (!empty($member['email'])): ?>
-                                                                <a href="mailto:<?= $member['email'] ?>">
-                                                                    <?= htmlspecialchars($member['email']) ?>
-                                                                </a>
-                                                            <?php else: ?>
-                                                                <span class="text-muted">-</span>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                        <td><?= htmlspecialchars($member['id_number'] ?? '-') ?></td>
-                                                        <td>
-                                                            <?php if (!empty($member['date_of_birth'])): ?>
-                                                                <?= date('d/m/Y', strtotime($member['date_of_birth'])) ?>
-                                                            <?php else: ?>
-                                                                <span class="text-muted">-</span>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                        <td>
-                                                            <?php if (!empty($member['note'])): ?>
-                                                                <small
-                                                                    class="text-info"><?= nl2br(htmlspecialchars($member['note'])) ?></small>
-                                                            <?php else: ?>
-                                                                <span class="text-muted">-</span>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endif; ?>
                     </div>
                     <div class="col-lg-4">
                         <div class="card">
@@ -425,26 +225,20 @@
                                 <h4 class="card-title"><i class="feather icon-settings"></i> Cập nhật trạng thái</h4>
                             </div>
                             <div class="card-body">
-                                <?php if ($booking['status'] != 'Đã hủy' && $booking['status'] != 'Đã hoàn thành' && isset($canEdit) && $canEdit): ?>
-                                    <form method="POST" action="?act=cap-nhat-trang-thai-booking" class="mb-3"
-                                        accept-charset="UTF-8">
+                                <?php if ($booking['status'] != 'Hủy' && $booking['status'] != 'Hoàn tất' && isset($canEdit) && $canEdit): ?>
+                                    <form method="POST" action="?act=cap-nhat-trang-thai-booking" class="mb-3">
                                         <input type="hidden" name="booking_id" value="<?= $booking['booking_id'] ?>">
                                         <div class="form-group">
                                             <label for="status">Chọn trạng thái mới:</label>
                                             <select name="status" id="status" class="form-control" required>
                                                 <option value="">-- Chọn trạng thái --</option>
-                                                <?php if ($booking['status'] == 'Giữ chỗ'): ?>
+                                                <?php if ($booking['status'] == 'Chờ xác nhận'): ?>
                                                     <option value="Đã đặt cọc">Đã đặt cọc</option>
-                                                    <option value="Đã thanh toán">Đã thanh toán</option>
-                                                    <option value="Đã hoàn thành">Đã hoàn thành</option>
-                                                    <option value="Đã hủy">Đã hủy</option>
+                                                    <option value="Hoàn tất">Hoàn tất</option>
+                                                    <option value="Hủy">Hủy</option>
                                                 <?php elseif ($booking['status'] == 'Đã đặt cọc'): ?>
-                                                    <option value="Đã thanh toán">Đã thanh toán</option>
-                                                    <option value="Đã hoàn thành">Đã hoàn thành</option>
-                                                    <option value="Đã hủy">Đã hủy</option>
-                                                <?php elseif ($booking['status'] == 'Đã thanh toán'): ?>
-                                                    <option value="Đã hoàn thành">Đã hoàn thành</option>
-                                                    <option value="Đã hủy">Đã hủy</option>
+                                                    <option value="Hoàn tất">Hoàn tất</option>
+                                                    <option value="Hủy">Hủy</option>
                                                 <?php endif; ?>
                                             </select>
                                         </div>
@@ -462,7 +256,7 @@
                                 <?php endif; ?>
 
                                 <div class="d-grid gap-2">
-                                    <?php if ($booking['status'] != 'Đã hủy' && $booking['status'] != 'Đã hoàn thành' && isset($canEdit) && $canEdit): ?>
+                                    <?php if ($booking['status'] != 'Hủy' && $booking['status'] != 'Hoàn tất' && isset($canEdit) && $canEdit): ?>
                                         <a href="?act=sua-booking&id=<?= $booking['booking_id'] ?>"
                                             class="btn btn-warning btn-block mb-2">
                                             <i class="feather icon-edit"></i> Chỉnh sửa thông tin
@@ -472,49 +266,6 @@
                                         <i class="feather icon-arrow-left"></i> Quay lại danh sách
                                     </a>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- === DOCUMENT GENERATION === -->
-                        <div class="card">
-                            <div class="card-header">
-                                <h4 class="card-title"><i class="feather icon-file"></i> Tài liệu</h4>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted small mb-3">
-                                    <i class="feather icon-info"></i> Tự động tạo báo giá, hợp đồng và hóa đơn từ
-                                    booking
-                                </p>
-
-                                <!-- Generate Documents -->
-                                <div class="btn-group-vertical btn-block mb-3">
-                                    <a href="?act=tao-bao-gia-pdf&booking_id=<?= $booking['booking_id'] ?>"
-                                        class="btn btn-outline-primary btn-sm" target="_blank">
-                                        <i class="feather icon-file-text"></i> Tạo Báo giá PDF
-                                    </a>
-                                    <a href="?act=tao-hop-dong-pdf&booking_id=<?= $booking['booking_id'] ?>"
-                                        class="btn btn-outline-success btn-sm" target="_blank">
-                                        <i class="feather icon-file"></i> Tạo Hợp đồng PDF
-                                    </a>
-                                    <?php if ($booking['status'] == 'Confirmed' || $booking['status'] == 'Đã hoàn thành'): ?>
-                                        <a href="?act=tao-hoa-don-pdf&booking_id=<?= $booking['booking_id'] ?>"
-                                            class="btn btn-outline-warning btn-sm" target="_blank">
-                                            <i class="feather icon-file-plus"></i> Tạo Hóa đơn VAT PDF
-                                        </a>
-                                    <?php else: ?>
-                                        <button class="btn btn-outline-secondary btn-sm" disabled>
-                                            <i class="feather icon-lock"></i> Hóa đơn (cần xác nhận booking)
-                                        </button>
-                                    <?php endif; ?>
-                                </div>
-
-                                <hr>
-
-                                <!-- View Documents History -->
-                                <a href="?act=xem-tai-lieu&booking_id=<?= $booking['booking_id'] ?>"
-                                    class="btn btn-info btn-block btn-sm">
-                                    <i class="feather icon-folder"></i> Xem lịch sử tài liệu
-                                </a>
                             </div>
                         </div>
 
@@ -528,23 +279,13 @@
                                     <div class="timeline">
                                         <?php foreach ($bookingLogs as $log):
                                             $details = json_decode($log['details'], true);
-                                            switch ($log['action']) {
-                                                case 'created':
-                                                    $actionText = 'Tạo booking';
-                                                    break;
-                                                case 'updated':
-                                                    $actionText = 'Cập nhật thông tin';
-                                                    break;
-                                                case 'status_changed':
-                                                    $actionText = 'Thay đổi trạng thái';
-                                                    break;
-                                                case 'cancelled':
-                                                    $actionText = 'Hủy booking';
-                                                    break;
-                                                default:
-                                                    $actionText = $log['action'];
-                                                    break;
-                                            }
+                                            $actionText = match ($log['action']) {
+                                                'created' => 'Tạo booking',
+                                                'updated' => 'Cập nhật thông tin',
+                                                'status_changed' => 'Thay đổi trạng thái',
+                                                'cancelled' => 'Hủy booking',
+                                                default => $log['action']
+                                            };
                                             ?>
                                             <div class="timeline-item">
                                                 <div class="timeline-point timeline-point-indicator"></div>

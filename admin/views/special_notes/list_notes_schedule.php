@@ -205,42 +205,24 @@
                                             </td>
                                             <td>
                                                 <?php
-                                                switch ($note['priority_level']) {
-                                                    case 'High':
-                                                        $priorityBadge = '<span class="badge badge-danger">Cao</span>';
-                                                        break;
-                                                    case 'Medium':
-                                                        $priorityBadge = '<span class="badge badge-warning">Trung bình</span>';
-                                                        break;
-                                                    case 'Low':
-                                                        $priorityBadge = '<span class="badge badge-info">Thấp</span>';
-                                                        break;
-                                                    default:
-                                                        $priorityBadge = $note['priority_level'];
-                                                        break;
-                                                }
+                                                $priorityBadge = match ($note['priority_level']) {
+                                                    'High' => '<span class="badge badge-danger">Cao</span>',
+                                                    'Medium' => '<span class="badge badge-warning">Trung bình</span>',
+                                                    'Low' => '<span class="badge badge-info">Thấp</span>',
+                                                    default => $note['priority_level']
+                                                };
                                                 echo $priorityBadge;
                                                 ?>
                                             </td>
                                             <td>
                                                 <?php
-                                                switch ($note['status']) {
-                                                    case 'Pending':
-                                                        $statusBadge = '<span class="badge badge-secondary">Chờ xử lý</span>';
-                                                        break;
-                                                    case 'Acknowledged':
-                                                        $statusBadge = '<span class="badge badge-primary">Đã nhận</span>';
-                                                        break;
-                                                    case 'In Progress':
-                                                        $statusBadge = '<span class="badge badge-info">Đang xử lý</span>';
-                                                        break;
-                                                    case 'Resolved':
-                                                        $statusBadge = '<span class="badge badge-success">Hoàn thành</span>';
-                                                        break;
-                                                    default:
-                                                        $statusBadge = $note['status'];
-                                                        break;
-                                                }
+                                                $statusBadge = match ($note['status']) {
+                                                    'Pending' => '<span class="badge badge-secondary">Chờ xử lý</span>',
+                                                    'Acknowledged' => '<span class="badge badge-primary">Đã nhận</span>',
+                                                    'In Progress' => '<span class="badge badge-info">Đang xử lý</span>',
+                                                    'Resolved' => '<span class="badge badge-success">Hoàn thành</span>',
+                                                    default => $note['status']
+                                                };
                                                 echo $statusBadge;
                                                 ?>
                                                 <br>
