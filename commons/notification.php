@@ -93,12 +93,20 @@ function notifyServiceAssignment($schedule_id, $service_id)
         }
 
         // Lấy thông tin dịch vụ/đối tác
-        $sqlService = "SELECT * FROM services WHERE service_id = ?";
+        $sqlService = "SELECT s.*, p.contact_person, p.email as partner_email, p.phone as partner_phone
+                       FROM services s
+                       LEFT JOIN partners p ON s.partner_id = p.partner_id
+                       WHERE s.service_id = ?";
         $stmtService = $conn->prepare($sqlService);
         $stmtService->execute([$service_id]);
         $service = $stmtService->fetch();
 
-        if (!$service || !$service['contact_email']) {
+        if (!$service) {
+            return false;
+        }
+        
+        $contact_email = $service['partner_email'] ?? $service['contact_phone'] ?? null;
+        if (!$contact_email) {
             return false;
         }
 
@@ -139,9 +147,9 @@ function notifyServiceAssignment($schedule_id, $service_id)
         $stmtLog->execute([
             'service_assignment',
             'partner',
-            $service_id,
-            $service['provider_name'],
-            $service['contact_email'],
+            $service['partner_id'],
+            $service['provider_name'] ?? $service['service_name'],
+            $contact_email,
             $schedule_id,
             $title,
             $message,
@@ -149,7 +157,7 @@ function notifyServiceAssignment($schedule_id, $service_id)
         ]);
 
         // TODO: Tích hợp email service thực tế
-        // sendEmail($service['contact_email'], $title, $message);
+        // sendEmail($contact_email, $title, $message);
 
         return true;
     } catch (Exception $e) {

@@ -25,6 +25,9 @@ require_once './controllers/BookingController.php';
 require_once './controllers/ReportController.php';
 require_once './controllers/QuoteController.php';
 require_once './controllers/SpecialNoteController.php';
+require_once './controllers/GuestController.php';
+require_once './controllers/PartnerController.php';
+require_once './controllers/ServiceController.php';
 
 // Require toàn bộ file Models
 require_once './models/Tour.php';
@@ -43,6 +46,9 @@ require_once './models/TourJournal.php';
 require_once './models/TourFeedback.php';
 require_once './models/TaskCheck.php';
 require_once './models/TourVersion.php';
+require_once './models/Guest.php';
+require_once './models/Partner.php';
+require_once './models/Service.php';
 // require_once './models/ProductModel.php';
 
 // Route
@@ -582,6 +588,56 @@ try {
         case 'xuat-bao-cao-yeu-cau-dac-biet':
             (new SpecialNoteController())->ExportSpecialRequirementsPDF();
             break;
+        // Use Case 3: Quản lý danh sách khách & Check-in đoàn
+        'danh-sach-khach' => (new GuestController())->ListGuests(),
+        'them-khach' => (new GuestController())->AddGuest(),
+        'luu-khach' => (new GuestController())->StoreGuest(),
+        'checkin-khach' => (new GuestController())->CheckIn(),
+        'phan-phong' => (new GuestController())->AssignRoom(),
+        'in-danh-sach-khach' => (new GuestController())->PrintGuestList(),
+        'bao-cao-khach' => (new GuestController())->SummaryReport(),
+        'xuat-khach-checkin' => (new GuestController())->ExportCheckedInGuests(),
+
+        // Use Case 4: Quản lý ghi chú đặc biệt
+        'dashboard-ghi-chu' => (new SpecialNoteController())->Dashboard(),
+        'quan-ly-ghi-chu-dac-biet' => (new SpecialNoteController())->ManageSpecialNotes(),
+        'ghi-chu-dac-biet' => (new SpecialNoteController())->ListNotesBySchedule(),
+        'danh-sach-ghi-chu-booking' => (new SpecialNoteController())->ListNotesByBooking(),
+        'them-ghi-chu' => (new SpecialNoteController())->CreateNote(),
+        'sua-ghi-chu' => (new SpecialNoteController())->EditNote(),
+        'cap-nhat-ghi-chu' => (new SpecialNoteController())->UpdateNote(),
+        'xoa-ghi-chu' => (new SpecialNoteController())->DeleteNote(),
+        'cap-nhat-trang-thai-ghi-chu' => (new SpecialNoteController())->UpdateNoteStatus(),
+        'sao-chep-ghi-chu-truoc' => (new SpecialNoteController())->CopyNotesFromPreviousBooking(),
+        
+        // Báo cáo và thông báo ghi chú đặc biệt
+        'bao-cao-yeu-cau-dac-biet' => (new SpecialNoteController())->SpecialRequirementsReport(),
+        'xuat-pdf-yeu-cau-dac-biet' => (new SpecialNoteController())->ExportSpecialRequirementsPDF(),
+        'in-yeu-cau-dac-biet' => (new SpecialNoteController())->PrintSpecialRequirements(),
+        'bao-cao-hieu-qua-phuc-vu' => (new SpecialNoteController())->ServiceEfficiencyReport(),
+        'gui-nhac-nho-truoc-tour' => (new SpecialNoteController())->SendPreTourReminder(),
+        'danh-dau-da-doc' => (new SpecialNoteController())->MarkNotificationRead(),
+        'dem-thong-bao-chua-doc' => (new SpecialNoteController())->GetUnreadCount(),
+
+        // Use Case 2: Quản lý đối tác dịch vụ
+        'danh-sach-doi-tac' => (new PartnerController())->ListPartner(),
+        'them-doi-tac' => (new PartnerController())->AddPartner(),
+        'luu-doi-tac' => (new PartnerController())->StorePartner(),
+        'sua-doi-tac' => (new PartnerController())->EditPartner(),
+        'cap-nhat-doi-tac' => (new PartnerController())->UpdatePartner(),
+        'xoa-doi-tac' => (new PartnerController())->DeletePartner(),
+        'thong-ke-doi-tac' => (new PartnerController())->PartnerStatistics(),
+
+        // Use Case 2: Quản lý dịch vụ
+        'danh-sach-dich-vu' => (new ServiceController())->ListService(),
+        'them-dich-vu' => (new ServiceController())->AddService(),
+        'luu-dich-vu' => (new ServiceController())->StoreService(),
+        'sua-dich-vu' => (new ServiceController())->EditService(),
+        'cap-nhat-dich-vu' => (new ServiceController())->UpdateService(),
+        'xoa-dich-vu' => (new ServiceController())->DeleteService(),
+        'chi-tiet-dich-vu' => (new ServiceController())->ServiceDetail(),
+        'thong-ke-dich-vu' => (new ServiceController())->ServiceStatistics(),
+        'kiem-tra-kha-dung-dich-vu' => (new ServiceController())->CheckAvailability(),
 
         // Báo cáo tài chính tour
         case 'bao-cao-tour':
