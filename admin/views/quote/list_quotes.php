@@ -18,17 +18,74 @@
 
             <!-- Thống kê -->
             <div class="row">
-                <?php foreach ($stats as $stat): ?>
+                <!-- Total Quotes -->
+                <div class="col-lg-3 col-sm-6">
+                    <div class="card">
+                        <div class="card-body d-flex align-items-center justify-content-between">
+                            <div>
+                                <h3 class="font-weight-bolder mb-0"><?= $stats['total_quotes'] ?? 0 ?></h3>
+                                <span>Tổng báo giá</span>
+                            </div>
+                            <div class="avatar bg-light-primary p-50">
+                                <span class="avatar-content">
+                                    <i class="feather icon-file-text font-medium-5"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Value -->
+                <div class="col-lg-3 col-sm-6">
+                    <div class="card">
+                        <div class="card-body d-flex align-items-center justify-content-between">
+                            <div>
+                                <h3 class="font-weight-bolder mb-0"><?= number_format($stats['total_value'] ?? 0) ?>
+                                </h3>
+                                <span>Tổng giá trị (VNĐ)</span>
+                            </div>
+                            <div class="avatar bg-light-success p-50">
+                                <span class="avatar-content">
+                                    <i class="feather icon-dollar-sign font-medium-5"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- By Status -->
+                <?php
+                $statusColors = [
+                    'Đang chờ' => 'warning',
+                    'Đã chấp nhận' => 'success',
+                    'Đã từ chối' => 'danger',
+                    'Hết hạn' => 'secondary'
+                ];
+                $statusIcons = [
+                    'Đang chờ' => 'clock',
+                    'Đã chấp nhận' => 'check-circle',
+                    'Đã từ chối' => 'x-circle',
+                    'Hết hạn' => 'alert-circle'
+                ];
+
+                $displayCount = 0;
+                foreach ($stats['by_status'] ?? [] as $status => $data):
+                    if ($displayCount >= 2)
+                        break; // Only show first 2 status cards
+                    $color = $statusColors[$status] ?? 'info';
+                    $icon = $statusIcons[$status] ?? 'file-text';
+                    $displayCount++;
+                    ?>
                     <div class="col-lg-3 col-sm-6">
                         <div class="card">
                             <div class="card-body d-flex align-items-center justify-content-between">
                                 <div>
-                                    <h3 class="font-weight-bolder mb-0"><?= $stat['total'] ?></h3>
-                                    <span><?= htmlspecialchars($stat['status']) ?></span>
+                                    <h3 class="font-weight-bolder mb-0"><?= $data['total'] ?? 0 ?></h3>
+                                    <span><?= htmlspecialchars($status) ?></span>
                                 </div>
-                                <div class="avatar bg-light-primary p-50">
+                                <div class="avatar bg-light-<?= $color ?> p-50">
                                     <span class="avatar-content">
-                                        <i class="feather icon-file-text font-medium-5"></i>
+                                        <i class="feather icon-<?= $icon ?> font-medium-5"></i>
                                     </span>
                                 </div>
                             </div>
@@ -105,13 +162,23 @@
                                             <td><?= number_format($q['total_amount'], 0, ',', '.') ?> đ</td>
                                             <td>
                                                 <?php
-                                                $badge = match ($q['status']) {
-                                                    'Đang chờ' => 'badge-warning',
-                                                    'Đã chấp nhận' => 'badge-success',
-                                                    'Đã từ chối' => 'badge-danger',
-                                                    'Hết hạn' => 'badge-secondary',
-                                                    default => 'badge-light'
-                                                };
+                                                switch ($q['status']) {
+                                                    case 'Đang chờ':
+                                                        $badge = 'badge-warning';
+                                                        break;
+                                                    case 'Đã chấp nhận':
+                                                        $badge = 'badge-success';
+                                                        break;
+                                                    case 'Đã từ chối':
+                                                        $badge = 'badge-danger';
+                                                        break;
+                                                    case 'Hết hạn':
+                                                        $badge = 'badge-secondary';
+                                                        break;
+                                                    default:
+                                                        $badge = 'badge-light';
+                                                        break;
+                                                }
                                                 ?>
                                                 <span class="badge <?= $badge ?>"><?= htmlspecialchars($q['status']) ?></span>
                                             </td>

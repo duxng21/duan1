@@ -84,10 +84,39 @@
                                                     <label for="tour_date">Ngày khởi hành</label>
                                                     <input type="date" name="tour_date" id="tour_date"
                                                         class="form-control" 
-                                                        value="<?= $booking['tour_date'] ?? '' ?>">
+                                                        value="<?= $booking['tour_date'] ?? '' ?>"
+                                                        onchange="loadScheduleData()">
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <!-- Thông tin lịch khởi hành (tự động lấy từ schedule) -->
+                                        <?php if (!empty($booking['schedule_id'])): ?>
+                                        <div class="card border-left-info mt-3 mb-3">
+                                            <div class="card-header bg-light">
+                                                <h5 class="card-title mb-0">
+                                                    <i class="feather icon-map"></i> Thông tin lịch khởi hành (từ lịch trình)
+                                                </h5>
+                                                <small class="text-muted d-block mt-1">Các thông tin này được lấy trực tiếp từ lịch khởi hành</small>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <p><strong>Điểm tập trung:</strong> <?= htmlspecialchars($booking['schedule_meeting_point'] ?? 'N/A') ?></p>
+                                                        <p><strong>Giờ tập trung:</strong> <?= $booking['schedule_meeting_time'] ?? 'N/A' ?></p>
+                                                        <p><strong>Số chỗ tối đa:</strong> <span class="badge badge-info"><?= $booking['schedule_max_participants'] ?? 0 ?></span></p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <p><strong>Trạng thái lịch:</strong> <span class="badge badge-<?php
+                                                            $ss = $booking['schedule_status'] ?? 'Open';
+                                                            echo ($ss == 'Open' ? 'success' : ($ss == 'Full' ? 'warning' : ($ss == 'Confirmed' ? 'primary' : 'secondary')));
+                                                        ?>"><?= $booking['schedule_status'] ?? 'Open' ?></span></p>
+                                                        <p><strong>Giá lịch:</strong> NL: <?= number_format($booking['schedule_price_adult'] ?? 0, 0, ',', '.') ?> đ | TE: <?= number_format($booking['schedule_price_child'] ?? 0, 0, ',', '.') ?> đ</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
 
                                         <!-- Thông tin khách hàng (Cá nhân) -->
                                         <div id="customer-section" style="display: <?= ($booking['booking_type'] == 'Cá nhân') ? 'block' : 'none' ?>">
@@ -151,24 +180,27 @@
                                             <div class="col-md-4">
                                                 <div class="form-group">
                                                     <label for="num_adults">Người lớn <span class="text-danger">*</span></label>
-                                                    <input type="number" name="num_adults" id="num_adults" 
-                                                        class="form-control" min="1" value="<?= $booking['num_adults'] ?>" required>
+                                                    <input type="text" id="num_adults_display" 
+                                                        class="form-control" value="<?= $booking['num_adults'] ?>" readonly>
+                                                    <input type="hidden" name="num_adults" id="num_adults" value="<?= $booking['num_adults'] ?>">
                                                     <small class="text-muted">Từ 12 tuổi trở lên</small>
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="form-group">
                                                     <label for="num_children">Trẻ em</label>
-                                                    <input type="number" name="num_children" id="num_children" 
-                                                        class="form-control" min="0" value="<?= $booking['num_children'] ?>">
+                                                    <input type="text" id="num_children_display" 
+                                                        class="form-control" value="<?= $booking['num_children'] ?>" readonly>
+                                                    <input type="hidden" name="num_children" id="num_children" value="<?= $booking['num_children'] ?>">
                                                     <small class="text-muted">Từ 6-11 tuổi</small>
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="form-group">
                                                     <label for="num_infants">Em bé</label>
-                                                    <input type="number" name="num_infants" id="num_infants" 
-                                                        class="form-control" min="0" value="<?= $booking['num_infants'] ?>">
+                                                    <input type="text" id="num_infants_display" 
+                                                        class="form-control" value="<?= $booking['num_infants'] ?>" readonly>
+                                                    <input type="hidden" name="num_infants" id="num_infants" value="<?= $booking['num_infants'] ?>">
                                                     <small class="text-muted">Dưới 6 tuổi</small>
                                                 </div>
                                             </div>
@@ -198,10 +230,11 @@
                                                 <div class="form-group">
                                                     <label for="status">Trạng thái</label>
                                                     <select name="status" id="status" class="form-control">
-                                                        <option value="Chờ xác nhận" <?= ($booking['status'] == 'Chờ xác nhận') ? 'selected' : '' ?>>Chờ xác nhận</option>
+                                                        <option value="Giữ chỗ" <?= ($booking['status'] == 'Giữ chỗ') ? 'selected' : '' ?>>Giữ chỗ</option>
                                                         <option value="Đã đặt cọc" <?= ($booking['status'] == 'Đã đặt cọc') ? 'selected' : '' ?>>Đã đặt cọc</option>
-                                                        <option value="Hoàn tất" <?= ($booking['status'] == 'Hoàn tất') ? 'selected' : '' ?>>Hoàn tất</option>
-                                                        <option value="Hủy" <?= ($booking['status'] == 'Hủy') ? 'selected' : '' ?>>Hủy</option>
+                                                        <option value="Đã thanh toán" <?= ($booking['status'] == 'Đã thanh toán') ? 'selected' : '' ?>>Đã thanh toán</option>
+                                                        <option value="Đã hủy" <?= ($booking['status'] == 'Đã hủy') ? 'selected' : '' ?>>Đã hủy</option>
+                                                        <option value="Đã hoàn thành" <?= ($booking['status'] == 'Đã hoàn thành') ? 'selected' : '' ?>>Đã hoàn thành</option>
                                                     </select>
                                                 </div>
                                             </div>
@@ -285,6 +318,31 @@
         document.getElementById('organization_name').required = isGroup;
         document.getElementById('contact_name').required = isGroup;
         document.getElementById('contact_phone').required = isGroup;
+    }
+
+    // Hàm lấy dữ liệu lịch khởi hành từ API khi thay đổi ngày
+    function loadScheduleData() {
+        const tourId = document.getElementById('tour_id').value;
+        const tourDate = document.getElementById('tour_date').value;
+        
+        if (!tourId || !tourDate) {
+            return;
+        }
+        
+        // AJAX call to fetch schedule data
+        fetch('?act=api-schedule-data&tour_id=' + encodeURIComponent(tourId) + '&tour_date=' + encodeURIComponent(tourDate))
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    const schedule = data.data;
+                    console.log('Schedule data:', schedule);
+                    
+                    // Cập nhật hiển thị thông tin lịch
+                    // Reload page để hiển thị thông tin lịch mới
+                    location.reload(); // Reload to show updated schedule information
+                }
+            })
+            .catch(err => console.error('Error loading schedule:', err));
     }
 
     // Khởi tạo trạng thái form khi load

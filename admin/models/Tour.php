@@ -244,4 +244,13 @@ class Tour
         return $stmt->execute([$name, $id]);
     }
 
+    public function countAll()
+    {
+        $sql = "SELECT COUNT(*) as total FROM tours";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return $result ? (int) $result['total'] : 0;
+    }
+
 }

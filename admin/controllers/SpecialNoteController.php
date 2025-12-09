@@ -31,7 +31,7 @@ class SpecialNoteController
         }
 
         // Lấy thông tin booking
-        $booking = $this->modelBooking->getBookingById($booking_id);
+        $booking = $this->modelBooking->getById($booking_id);
         if (!$booking) {
             $_SESSION['error'] = 'Không tìm thấy booking!';
             header('Location: ?act=danh-sach-booking');
