@@ -18,38 +18,20 @@
             <!-- Thông báo -->
             <?php require_once __DIR__ . '/../core/alert.php'; ?>
 
-            <?php if (isset($_SESSION['success']) && strpos($_SESSION['success'], 'thành công') !== false): ?>
-                <div class="alert alert-info alert-dismissible fade show mb-2" role="alert">
-                    <i class="feather icon-info"></i>
-                    <strong>Tiếp theo:</strong> Hãy thêm danh sách khách trong đoàn bằng cách click nút "Quản lý danh sách
-                    đoàn" dưới đây.
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-            <?php endif; ?>
-
             <!-- Thông tin cơ bản -->
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title">Thông tin lịch khởi hành</h4>
                     <?php if (isAdmin()): ?>
-                        <div class="btn-group">
-                            <a href="?act=quan-ly-danh-sach-doan&schedule_id=<?= $schedule['schedule_id'] ?>"
-                                class="btn btn-info btn-sm mr-1">
-                                <i class="feather icon-users"></i> Quản lý danh sách đoàn
+                        <?php if ($schedule['status'] === 'In Progress'): ?>
+                            <span class="badge badge-warning">
+                                <i class="feather icon-lock"></i> Đang diễn ra - Không thể chỉnh sửa
+                            </span>
+                        <?php else: ?>
+                            <a href="?act=sua-lich-khoi-hanh&id=<?= $schedule['schedule_id'] ?>" class="btn btn-warning btn-sm">
+                                <i class="feather icon-edit"></i> Sửa lịch
                             </a>
-                            <?php if ($schedule['status'] === 'In Progress'): ?>
-                                <span class="badge badge-warning">
-                                    <i class="feather icon-lock"></i> Đang diễn ra - Không thể chỉnh sửa
-                                </span>
-                            <?php else: ?>
-                                <a href="?act=sua-lich-khoi-hanh&id=<?= $schedule['schedule_id'] ?>"
-                                    class="btn btn-warning btn-sm">
-                                    <i class="feather icon-edit"></i> Sửa lịch
-                                </a>
-                            <?php endif; ?>
-                        </div>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
                 <div class="card-body">
@@ -89,8 +71,7 @@
                                     <th>Số người:</th>
                                     <td>
                                         <span class="badge badge-info">
-                                            <?= ((int) ($numAdults ?? 0) + (int) ($numChildren ?? 0) + (int) ($numInfants ?? 0)) ?>
-                                            /
+                                            <?= $schedule['total_guests'] ?? 0 ?> /
                                             <?= $schedule['max_participants'] ?? 0 ?>
                                         </span>
                                     </td>
@@ -99,72 +80,54 @@
                                     <th>Trạng thái:</th>
                                     <td>
                                         <?php
-                                        switch ($schedule['status']) {
-                                            case 'Open':
-                                                $statusClass = 'badge-success';
-                                                $statusText = 'Mở đặt';
-                                                break;
-                                            case 'Full':
-                                                $statusClass = 'badge-warning';
-                                                $statusText = 'Đầy';
-                                                break;
-                                            case 'Confirmed':
-                                                $statusClass = 'badge-primary';
-                                                $statusText = 'Đã xác nhận';
-                                                break;
-                                            case 'In Progress':
-                                                $statusClass = 'badge-info';
-                                                $statusText = 'Đang diễn ra';
-                                                break;
-                                            case 'Completed':
-                                                $statusClass = 'badge-secondary';
-                                                $statusText = 'Hoàn thành';
-                                                break;
-                                            case 'Cancelled':
-                                                $statusClass = 'badge-danger';
-                                                $statusText = 'Đã hủy';
-                                                break;
-                                            default:
-                                                $statusClass = 'badge-light';
-                                                $statusText = $schedule['status'];
-                                                break;
-                                        }
+                                        $statusClass = match ($schedule['status']) {
+                                            'Open' => 'badge-success',
+                                            'Full' => 'badge-warning',
+                                            'Confirmed' => 'badge-primary',
+                                            'In Progress' => 'badge-info',
+                                            'Completed' => 'badge-secondary',
+                                            'Cancelled' => 'badge-danger',
+                                            default => 'badge-light'
+                                        };
+                                        $statusText = match ($schedule['status']) {
+                                            'Open' => 'Mở đặt',
+                                            'Full' => 'Đầy',
+                                            'Confirmed' => 'Đã xác nhận',
+                                            'In Progress' => 'Đang diễn ra',
+                                            'Completed' => 'Hoàn thành',
+                                            'Cancelled' => 'Đã hủy',
+                                            default => $schedule['status']
+                                        };
                                         ?>
                                         <span class="badge <?= $statusClass ?>"><?= $statusText ?></span>
-
+                                        
                                         <?php if (isAdmin()): ?>
                                             <div class="btn-group ml-2" role="group">
-                                                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle"
-                                                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" 
+                                                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                     <i class="feather icon-edit-2"></i> Đổi trạng thái
                                                 </button>
                                                 <div class="dropdown-menu">
                                                     <?php if ($schedule['status'] !== 'In Progress'): ?>
-                                                        <a class="dropdown-item" href="#"
-                                                            onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'In Progress', 'Đang diễn ra')">
+                                                        <a class="dropdown-item" href="#" onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'In Progress', 'Đang diễn ra')">
                                                             <i class="feather icon-play-circle text-info"></i> Bắt đầu tour
                                                         </a>
                                                     <?php endif; ?>
                                                     <?php if ($schedule['status'] === 'In Progress'): ?>
-                                                        <a class="dropdown-item" href="#"
-                                                            onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'Completed', 'Hoàn thành')">
-                                                            <i class="feather icon-check-circle text-success"></i> Hoàn thành
-                                                            tour
+                                                        <a class="dropdown-item" href="#" onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'Completed', 'Hoàn thành')">
+                                                            <i class="feather icon-check-circle text-success"></i> Hoàn thành tour
                                                         </a>
                                                     <?php endif; ?>
                                                     <?php if ($schedule['status'] !== 'Cancelled' && $schedule['status'] !== 'In Progress'): ?>
-                                                        <a class="dropdown-item" href="#"
-                                                            onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'Cancelled', 'Hủy')">
+                                                        <a class="dropdown-item" href="#" onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'Cancelled', 'Hủy')">
                                                             <i class="feather icon-x-circle text-danger"></i> Hủy tour
                                                         </a>
                                                     <?php endif; ?>
                                                     <div class="dropdown-divider"></div>
-                                                    <a class="dropdown-item" href="#"
-                                                        onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'Open', 'Mở đặt')">
+                                                    <a class="dropdown-item" href="#" onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'Open', 'Mở đặt')">
                                                         <i class="feather icon-unlock text-success"></i> Mở đặt
                                                     </a>
-                                                    <a class="dropdown-item" href="#"
-                                                        onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'Confirmed', 'Đã xác nhận')">
+                                                    <a class="dropdown-item" href="#" onclick="return confirmChangeStatus(<?= $schedule['schedule_id'] ?>, 'Confirmed', 'Đã xác nhận')">
                                                         <i class="feather icon-check text-primary"></i> Xác nhận
                                                     </a>
                                                 </div>
@@ -180,95 +143,40 @@
                             <strong>Ghi chú:</strong> <?= nl2br(htmlspecialchars($schedule['notes'])) ?>
                         </div>
                     <?php endif; ?>
-
-                    <!-- Tóm tắt giá & tổng tạm tính -->
-                    <div class="card mt-1">
-                        <div class="card-header p-1">
-                            <h5 class="card-title mb-0">Giá & Tổng tạm tính</h5>
-                        </div>
-                        <div class="card-body p-1">
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <table class="table table-sm mb-0">
-                                        <tr>
-                                            <th style="width:25%">Giá NL (Người lớn):</th>
-                                            <td><span
-                                                    class="badge badge-primary"><?= number_format((float) ($schedule['price_adult'] ?? 0), 0, ',', '.') ?>
-                                                    đ</span></td>
-                                            <th style="width:20%">Giá TE (Trẻ em):</th>
-                                            <td><span
-                                                    class="badge badge-info"><?= number_format((float) ($schedule['price_child'] ?? 0), 0, ',', '.') ?>
-                                                    đ</span></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Số NL dự kiến:</th>
-                                            <td><?= (int) ($numAdults ?? 0) ?></td>
-                                            <th>Số TE dự kiến:</th>
-                                            <td><?= (int) ($numChildren ?? 0) ?></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Em bé dự kiến:</th>
-                                            <td><?= (int) ($numInfants ?? 0) ?></td>
-                                            <th>Tổng khách:</th>
-                                            <td><?= ((int) ($numAdults ?? 0) + (int) ($numChildren ?? 0) + (int) ($numInfants ?? 0)) ?>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </div>
-                                <div class="col-md-4 text-right">
-                                    <div class="h6 mb-0">Tổng tạm tính:</div>
-                                    <div class="h4 text-success mb-0">
-                                        <?= number_format((float) ($estimatedTotal ?? 0), 0, ',', '.') ?> đ
-                                    </div>
-                                    <?php if (isAdmin()): ?>
-                                        <a class="btn btn-sm btn-outline-primary mt-50"
-                                            href="?act=tao-booking-tu-lich&schedule_id=<?= $schedule['schedule_id'] ?>">
-                                            <i class="feather icon-file-plus"></i> Tạo booking từ lịch này
-                                        </a>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
             <script>
-                function confirmChangeStatus(scheduleId, newStatus, statusName) {
-                    if (confirm('Bạn có chắc chắn muốn chuyển trạng thái sang "' + statusName + '"?')) {
-                        var form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = '?act=thay-doi-trang-thai-tour';
-
-                        var scheduleInput = document.createElement('input');
-                        scheduleInput.type = 'hidden';
-                        scheduleInput.name = 'schedule_id';
-                        scheduleInput.value = scheduleId;
-                        form.appendChild(scheduleInput);
-
-                        var statusInput = document.createElement('input');
-                        statusInput.type = 'hidden';
-                        statusInput.name = 'status';
-                        statusInput.value = newStatus;
-                        form.appendChild(statusInput);
-
-                        document.body.appendChild(form);
-                        form.submit();
-                    }
-                    return false;
+            function confirmChangeStatus(scheduleId, newStatus, statusName) {
+                if (confirm('Bạn có chắc chắn muốn chuyển trạng thái sang "' + statusName + '"?')) {
+                    var form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '?act=thay-doi-trang-thai-tour';
+                    
+                    var scheduleInput = document.createElement('input');
+                    scheduleInput.type = 'hidden';
+                    scheduleInput.name = 'schedule_id';
+                    scheduleInput.value = scheduleId;
+                    form.appendChild(scheduleInput);
+                    
+                    var statusInput = document.createElement('input');
+                    statusInput.type = 'hidden';
+                    statusInput.name = 'status';
+                    statusInput.value = newStatus;
+                    form.appendChild(statusInput);
+                    
+                    document.body.appendChild(form);
+                    form.submit();
                 }
+                return false;
+            }
             </script>
 
             <!-- Tab Navigation -->
             <ul class="nav nav-tabs" role="tablist">
                 <li class="nav-item">
-                    <a class="nav-link active" id="members-tab" data-toggle="tab" href="#members" role="tab">
-                        <i class="feather icon-users"></i> Danh sách đoàn (<?= count($groupMembers ?? []) ?>)
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="staff-tab" data-toggle="tab" href="#staff" role="tab">
-                        <i class="feather icon-user-check"></i> Nhân sự (<?= count($staff) ?>)
+                    <a class="nav-link active" id="staff-tab" data-toggle="tab" href="#staff" role="tab">
+                        <i class="feather icon-users"></i> Nhân sự (<?= count($staff) ?>)
                     </a>
                 </li>
                 <li class="nav-item">
@@ -280,58 +188,8 @@
 
             <!-- Tab Content -->
             <div class="tab-content">
-                <!-- Tab Danh sách đoàn -->
-                <div class="tab-pane active" id="members" role="tabpanel">
-                    <div class="card">
-                        <div class="card-header">
-                            <h4 class="card-title">Danh sách thành viên trong đoàn</h4>
-                            <?php if (isAdmin()): ?>
-                                <a href="?act=quan-ly-danh-sach-doan&schedule_id=<?= $schedule['schedule_id'] ?>"
-                                    class="btn btn-primary btn-sm">
-                                    <i class="feather icon-edit"></i> Quản lý danh sách
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                        <div class="card-body">
-                            <?php if (!empty($groupMembers)): ?>
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>#</th>
-                                                <th>Họ tên</th>
-                                                <th>SĐT</th>
-                                                <th>Email</th>
-                                                <th>CMND/CCCD</th>
-                                                <th>Ngày sinh</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach ($groupMembers as $index => $member): ?>
-                                                <tr>
-                                                    <td><?= $index + 1 ?></td>
-                                                    <td><strong><?= htmlspecialchars($member['full_name']) ?></strong></td>
-                                                    <td><?= htmlspecialchars($member['phone'] ?? '-') ?></td>
-                                                    <td><?= htmlspecialchars($member['email'] ?? '-') ?></td>
-                                                    <td><?= htmlspecialchars($member['id_number'] ?? '-') ?></td>
-                                                    <td><?= $member['date_of_birth'] ? date('d/m/Y', strtotime($member['date_of_birth'])) : '-' ?>
-                                                    </td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            <?php else: ?>
-                                <div class="alert alert-info">
-                                    <i class="feather icon-info"></i> Chưa có thành viên nào trong danh sách đoàn.
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Tab Nhân sự -->
-                <div class="tab-pane" id="staff" role="tabpanel">
+                <div class="tab-pane active" id="staff" role="tabpanel">
                     <div class="card">
                         <div class="card-header">
                             <h4 class="card-title">Phân công nhân sự</h4>
@@ -366,23 +224,13 @@
                                                     <td><strong><?= htmlspecialchars($s['full_name']) ?></strong></td>
                                                     <td>
                                                         <?php
-                                                        switch ($s['staff_type']) {
-                                                            case 'Guide':
-                                                                $typeLabel = '<span class="badge badge-primary">Hướng dẫn viên</span>';
-                                                                break;
-                                                            case 'Driver':
-                                                                $typeLabel = '<span class="badge badge-info">Tài xế</span>';
-                                                                break;
-                                                            case 'Support':
-                                                                $typeLabel = '<span class="badge badge-success">Hỗ trợ</span>';
-                                                                break;
-                                                            case 'Manager':
-                                                                $typeLabel = '<span class="badge badge-warning">Quản lý</span>';
-                                                                break;
-                                                            default:
-                                                                $typeLabel = $s['staff_type'];
-                                                                break;
-                                                        }
+                                                        $typeLabel = match ($s['staff_type']) {
+                                                            'Guide' => '<span class="badge badge-primary">Hướng dẫn viên</span>',
+                                                            'Driver' => '<span class="badge badge-info">Tài xế</span>',
+                                                            'Support' => '<span class="badge badge-success">Hỗ trợ</span>',
+                                                            'Manager' => '<span class="badge badge-warning">Quản lý</span>',
+                                                            default => $s['staff_type']
+                                                        };
                                                         echo $typeLabel;
                                                         ?>
                                                     </td>
@@ -451,26 +299,14 @@
                                                     <td><strong><?= htmlspecialchars($serv['service_name']) ?></strong></td>
                                                     <td>
                                                         <?php
-                                                        switch ($serv['service_type']) {
-                                                            case 'Hotel':
-                                                                $typeLabel = '<span class="badge badge-primary">Khách sạn</span>';
-                                                                break;
-                                                            case 'Restaurant':
-                                                                $typeLabel = '<span class="badge badge-success">Nhà hàng</span>';
-                                                                break;
-                                                            case 'Transport':
-                                                                $typeLabel = '<span class="badge badge-info">Xe</span>';
-                                                                break;
-                                                            case 'Flight':
-                                                                $typeLabel = '<span class="badge badge-warning">Máy bay</span>';
-                                                                break;
-                                                            case 'Insurance':
-                                                                $typeLabel = '<span class="badge badge-secondary">Bảo hiểm</span>';
-                                                                break;
-                                                            default:
-                                                                $typeLabel = $serv['service_type'];
-                                                                break;
-                                                        }
+                                                        $typeLabel = match ($serv['service_type']) {
+                                                            'Hotel' => '<span class="badge badge-primary">Khách sạn</span>',
+                                                            'Restaurant' => '<span class="badge badge-success">Nhà hàng</span>',
+                                                            'Transport' => '<span class="badge badge-info">Xe</span>',
+                                                            'Flight' => '<span class="badge badge-warning">Máy bay</span>',
+                                                            'Insurance' => '<span class="badge badge-secondary">Bảo hiểm</span>',
+                                                            default => $serv['service_type']
+                                                        };
                                                         echo $typeLabel;
                                                         ?>
                                                     </td>
@@ -604,39 +440,24 @@
                         <label for="staff_id">Chọn nhân viên <span class="text-danger">*</span></label>
                         <select name="staff_id" id="staff_id" class="form-control" required>
                             <option value="">-- Chọn nhân viên --</option>
-                            <?php foreach ($allStaff as $s):
-                                switch ($s['staff_type']) {
-                                    case 'Guide':
-                                        $typeShort = 'HDV';
-                                        break;
-                                    case 'Driver':
-                                        $typeShort = 'Tài xế';
-                                        break;
-                                    case 'Support':
-                                        $typeShort = 'Hỗ trợ';
-                                        break;
-                                    case 'Manager':
-                                        $typeShort = 'Quản lý';
-                                        break;
-                                    default:
-                                        $typeShort = $s['staff_type'];
-                                        break;
-                                }
-                                ?>
+                            <?php foreach ($allStaff as $s): ?>
                                 <option value="<?= $s['staff_id'] ?>">
                                     <?= htmlspecialchars($s['full_name']) ?>
-                                    (<?= $typeShort ?>)
+                                    (<?= match ($s['staff_type']) {
+                                        'Guide' => 'HDV',
+                                        'Driver' => 'Tài xế',
+                                        'Support' => 'Hỗ trợ',
+                                        'Manager' => 'Quản lý',
+                                        default => $s['staff_type']
+                                    } ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="role">Vai trò trong tour này <span class="text-danger">*</span></label>
-                        <select name="role" id="role" class="form-control" required>
-                            <option value="">-- Chọn vai trò --</option>
-                            <option value="Chính">Chính</option>
-                            <option value="Phụ">Phụ</option>
-                        </select>
+                        <label for="role">Vai trò trong tour này</label>
+                        <input type="text" name="role" id="role" class="form-control"
+                            placeholder="VD: Hướng dẫn viên chính, Tài xế phụ...">
                     </div>
                 </div>
                 <div class="modal-footer">

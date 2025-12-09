@@ -141,15 +141,13 @@
                                         <th>Thuế (<?= $quote['tax_percent'] ?>%)</th>
                                         <td class="text-right">
                                             <?= number_format(($quote['base_price'] - ($quote['discount_type'] === 'percent' ? $quote['base_price'] * $quote['discount_value'] / 100 : $quote['discount_value'])) * $quote['tax_percent'] / 100, 0, ',', '.') ?>
-                                            đ
-                                        </td>
+                                            đ</td>
                                     </tr>
                                 <?php endif; ?>
                                 <tr class="font-weight-bold">
                                     <th>Tổng cộng</th>
                                     <td class="text-right text-primary">
-                                        <?= number_format($quote['total_amount'], 0, ',', '.') ?> đ
-                                    </td>
+                                        <?= number_format($quote['total_amount'], 0, ',', '.') ?> đ</td>
                                 </tr>
                             </table>
 
@@ -171,23 +169,13 @@
                             <p>
                                 <strong>Trạng thái:</strong>
                                 <?php
-                                switch ($quote['status']) {
-                                    case 'Đang chờ':
-                                        $badge = 'badge-warning';
-                                        break;
-                                    case 'Đã chấp nhận':
-                                        $badge = 'badge-success';
-                                        break;
-                                    case 'Đã từ chối':
-                                        $badge = 'badge-danger';
-                                        break;
-                                    case 'Hết hạn':
-                                        $badge = 'badge-secondary';
-                                        break;
-                                    default:
-                                        $badge = 'badge-light';
-                                        break;
-                                }
+                                $badge = match ($quote['status']) {
+                                    'Đang chờ' => 'badge-warning',
+                                    'Đã chấp nhận' => 'badge-success',
+                                    'Đã từ chối' => 'badge-danger',
+                                    'Hết hạn' => 'badge-secondary',
+                                    default => 'badge-light'
+                                };
                                 ?>
                                 <span class="badge <?= $badge ?>"><?= htmlspecialchars($quote['status']) ?></span>
                             </p>

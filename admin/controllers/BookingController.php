@@ -18,14 +18,8 @@ class BookingController
         $filters = [
             'tour_id' => $_GET['tour_id'] ?? '',
             'status' => $_GET['status'] ?? '',
-            'search' => $_GET['search'] ?? '',
-            'include_cancelled' => $_GET['include_cancelled'] ?? '0'
+            'search' => $_GET['search'] ?? ''
         ];
-
-        // Nếu không muốn xem booking hủy, thêm filter status
-        if ($filters['include_cancelled'] !== '1' && empty($filters['status'])) {
-            $filters['status'] = 'not_cancelled'; // Custom filter value
-        }
 
         $bookings = $this->bookingModel->getAll($filters);
         $statistics = $this->bookingModel->getStatistics();
@@ -38,96 +32,27 @@ class BookingController
 
     public function AddBooking()
     {
-        // Lấy danh sách lịch khởi hành còn chỗ (với số lượng khách từ schedule)
+        // Lấy tours với giá mẫu từ schedule gần nhất
         $conn = connectDB();
         $stmt = $conn->query("
             SELECT 
-                ts.schedule_id,
-                ts.tour_id,
-                ts.departure_date,
-                ts.return_date,
-                ts.meeting_point,
-                ts.meeting_time,
-                ts.max_participants,
-                ts.price_adult,
-                ts.price_child,
-                ts.status,
-                ts.num_adults,
-                ts.num_children,
-                ts.num_infants,
-                COALESCE(ts.current_participants, 0) as current_participants,
-                (ts.max_participants - COALESCE(ts.current_participants, 0)) as available_slots,
+                t.tour_id,
                 t.tour_name,
-                t.code as tour_code,
-                t.duration_days
-            FROM tour_schedules ts
-            INNER JOIN tours t ON ts.tour_id = t.tour_id
-            WHERE ts.status IN ('Open', 'Confirmed')
-              AND ts.departure_date >= CURDATE()
-              AND (ts.max_participants - COALESCE(ts.current_participants, 0)) > 0
-            ORDER BY ts.departure_date ASC, t.tour_name
+                t.code,
+                t.duration_days,
+                COALESCE(MIN(ts.price_adult), 0) as price_adult,
+                COALESCE(MIN(ts.price_child), 0) as price_child
+            FROM tours t
+            LEFT JOIN tour_schedules ts ON t.tour_id = ts.tour_id
+            WHERE t.status = 'Public'
+            GROUP BY t.tour_id
+            ORDER BY t.tour_name
         ");
-        $schedules = $stmt->fetchAll();
+        $tours = $stmt->fetchAll();
 
         // Lấy customers
         $stmt = $conn->query("SELECT * FROM customers ORDER BY full_name");
         $customers = $stmt->fetchAll();
-
-        require_once './views/booking/add_booking.php';
-    }
-
-    // Tạo booking từ một lịch khởi hành cụ thể (prefill tour/date/prices)
-    public function AddBookingFromSchedule()
-    {
-        $schedule_id = $_GET['schedule_id'] ?? null;
-        if (!$schedule_id) {
-            $_SESSION['error'] = 'Thiếu schedule_id!';
-            header('Location: ?act=danh-sach-lich-khoi-hanh');
-            exit();
-        }
-
-        $conn = connectDB();
-        // Chỉ lấy tours đã có lịch khởi hành
-        $stmt = $conn->query("\r
-            SELECT \r
-                t.tour_id,\r
-                t.tour_name,\r
-                t.code,\r
-                t.duration_days,\r
-                COALESCE(MIN(ts.price_adult), 0) as price_adult,\r
-                COALESCE(MIN(ts.price_child), 0) as price_child,\r
-                COUNT(DISTINCT ts.schedule_id) as schedule_count\r
-            FROM tours t\r
-            INNER JOIN tour_schedules ts ON t.tour_id = ts.tour_id\r
-            WHERE t.status = 'Public'\r
-              AND ts.status IN ('Open', 'Confirmed')\r
-              AND ts.departure_date >= CURDATE()\r
-            GROUP BY t.tour_id\r
-            HAVING schedule_count > 0\r
-            ORDER BY t.tour_name\r
-        ");
-        $tours = $stmt->fetchAll();
-
-        // Customers
-        $stmt = $conn->query("SELECT * FROM customers ORDER BY full_name");
-        $customers = $stmt->fetchAll();
-
-        // Lấy thông tin schedule để prefill
-        $bookingModel = new Booking();
-        $schedule = $bookingModel->getScheduleInfo($schedule_id);
-        if (!$schedule) {
-            $_SESSION['error'] = 'Không tìm thấy lịch khởi hành!';
-            header('Location: ?act=danh-sach-lich-khoi-hanh');
-            exit();
-        }
-
-        $prefill = [
-            'schedule_id' => $schedule['schedule_id'],
-            'tour_id' => $schedule['tour_id'],
-            'tour_date' => $schedule['departure_date'],
-            'price_adult' => (float) ($schedule['price_adult'] ?? 0),
-            'price_child' => (float) ($schedule['price_child'] ?? 0)
-        ];
 
         require_once './views/booking/add_booking.php';
     }
@@ -143,23 +68,8 @@ class BookingController
 
         try {
             // Validate
-            if (empty($_POST['schedule_id'])) {
-                throw new Exception('Vui lòng chọn lịch khởi hành!');
-            }
-
-            // Lấy thông tin schedule để lấy tour_id và giá
-            $conn = connectDB();
-            $stmt = $conn->prepare("
-                SELECT ts.*, t.tour_name 
-                FROM tour_schedules ts
-                JOIN tours t ON ts.tour_id = t.tour_id
-                WHERE ts.schedule_id = ?
-            ");
-            $stmt->execute([$_POST['schedule_id']]);
-            $schedule = $stmt->fetch();
-
-            if (!$schedule) {
-                throw new Exception('Lịch khởi hành không tồn tại!');
+            if (empty($_POST['tour_id'])) {
+                throw new Exception('Vui lòng chọn tour!');
             }
 
             // Validate theo loại booking
@@ -184,49 +94,21 @@ class BookingController
                 throw new Exception('Số người lớn phải >= 1!');
             }
 
-            // Tính tổng tiền từ giá schedule
-            $numAdults = intval($_POST['num_adults']);
-            $numChildren = intval($_POST['num_children'] ?? 0);
-            $numInfants = intval($_POST['num_infants'] ?? 0);
-            $totalGuests = $numAdults + $numChildren + $numInfants;
-
-            // ========== KIỂM TRA SỐ LƯỢNG KHÁCH KHÔNG VƯỢT QUÁ CHỖ TỐI ĐA ==========
-            $maxParticipants = intval($schedule['max_participants'] ?? 0);
-            $allowOverbook = !empty($_POST['allow_overbook']) ? 1 : 0;
-
-            if (!$allowOverbook && $totalGuests > $maxParticipants) {
-                throw new Exception("Lỗi: Tổng số khách ($totalGuests) vượt quá số chỗ tối đa ($maxParticipants) của lịch! 
-                    Vui lòng giảm số lượng khách hoặc bật tùy chọn 'Cho phép overbook'.");
-            }
-
-            $totalAmount = ($numAdults * (float) $schedule['price_adult'])
-                + ($numChildren * (float) $schedule['price_child'])
-                + ($numInfants * (float) $schedule['price_child'] * 0.1);
-
-            // Validate status
-            $validStatuses = ['Giữ chỗ', 'Đã đặt cọc', 'Đã thanh toán', 'Đã hủy', 'Đã hoàn thành'];
-            $status = $_POST['status'] ?? 'Giữ chỗ';
-            if (!in_array($status, $validStatuses)) {
-                throw new Exception('Trạng thái booking không hợp lệ!');
-            }
-
             $data = [
-                'schedule_id' => intval($_POST['schedule_id']),
-                'tour_id' => $schedule['tour_id'],
-                'tour_date' => $schedule['departure_date'],
+                'tour_id' => !empty($_POST['tour_id']) ? intval($_POST['tour_id']) : null,
+                'tour_date' => !empty($_POST['tour_date']) ? $_POST['tour_date'] : null,
                 'customer_id' => !empty($_POST['customer_id']) ? intval($_POST['customer_id']) : null,
                 'booking_type' => $bookingType,
                 'organization_name' => !empty($_POST['organization_name']) ? $_POST['organization_name'] : null,
                 'contact_name' => !empty($_POST['contact_name']) ? $_POST['contact_name'] : null,
                 'contact_phone' => !empty($_POST['contact_phone']) ? $_POST['contact_phone'] : null,
                 'contact_email' => !empty($_POST['contact_email']) ? $_POST['contact_email'] : null,
-                'num_adults' => $numAdults,
-                'num_children' => $numChildren,
-                'num_infants' => $numInfants,
+                'num_adults' => intval($_POST['num_adults']),
+                'num_children' => intval($_POST['num_children'] ?? 0),
+                'num_infants' => intval($_POST['num_infants'] ?? 0),
                 'special_requests' => !empty($_POST['special_requests']) ? $_POST['special_requests'] : null,
-                'total_amount' => $totalAmount,
-                'status' => $status,
-                'allow_overbook' => $allowOverbook
+                'total_amount' => floatval($_POST['total_amount']),
+                'status' => $_POST['status'] ?? 'Chờ xác nhận'
             ];
 
             // Lấy booking details từ form nếu có
@@ -245,41 +127,16 @@ class BookingController
 
             $booking_id = $this->bookingModel->create($data);
 
-            // Liên kết booking với lịch khởi hành (tour_bookings)
-            try {
-                $conn = connectDB();
-                $stmt = $conn->prepare("INSERT INTO tour_bookings (schedule_id, booking_id, number_of_guests) VALUES (?,?,?)");
-                $stmt->execute([
-                    (int) $data['schedule_id'],
-                    (int) $booking_id,
-                    (int) $totalGuests
-                ]);
-            } catch (Exception $e) {
-                // Không block nếu bảng chưa tồn tại hoặc lỗi nhẹ
-            }
-
             // === Use Case 1: Gửi thông báo xác nhận booking ===
-            try {
-                if (function_exists('notifyBookingCreated')) {
-                    notifyBookingCreated($booking_id);
-                }
-            } catch (Exception $e) {
-                // Không block nếu gửi thông báo thất bại
-            }
+            notifyBookingCreated($booking_id);
 
             // === Use Case 1: Ghi log activity ===
-            try {
-                if (method_exists($this, 'logBookingActivity')) {
-                    $this->logBookingActivity($booking_id, 'created', [
-                        'user_id' => $_SESSION['user_id'] ?? null,
-                        'booking_type' => $bookingType,
-                        'tour_id' => $data['tour_id'],
-                        'total_amount' => $data['total_amount']
-                    ]);
-                }
-            } catch (Exception $e) {
-                // Không block nếu log thất bại
-            }
+            $this->logBookingActivity($booking_id, 'created', [
+                'user_id' => $_SESSION['user_id'] ?? null,
+                'booking_type' => $bookingType,
+                'tour_id' => $data['tour_id'],
+                'total_amount' => $data['total_amount']
+            ]);
 
             $_SESSION['success'] = 'Tạo booking thành công! ' . ($bookingType == 'Đoàn' ? 'Đã xác nhận tạm thời cho đoàn.' : '');
             header('Location: ?act=chi-tiet-booking&id=' . $booking_id);
@@ -311,23 +168,6 @@ class BookingController
 
         // === Use Case 2: Kiểm tra quyền chỉnh sửa ===
         $canEdit = $this->canEditBooking($_SESSION['user_id'] ?? 0, $_SESSION['role'] ?? '');
-
-        // Lấy danh sách khách trong đoàn từ schedule (nếu có schedule_id)
-        $groupMembers = [];
-        if (!empty($booking['tour_date'])) {
-            // Tìm schedule_id từ tour_date và tour_id
-            $conn = connectDB();
-            $stmt = $conn->prepare("SELECT schedule_id FROM tour_schedules WHERE tour_id = ? AND departure_date = ? LIMIT 1");
-            $stmt->execute([$booking['tour_id'], $booking['tour_date']]);
-            $schedule = $stmt->fetch();
-
-            if ($schedule) {
-                // Lấy danh sách thành viên từ schedule_group_members
-                $stmt = $conn->prepare("SELECT * FROM schedule_group_members WHERE schedule_id = ? ORDER BY member_id");
-                $stmt->execute([$schedule['schedule_id']]);
-                $groupMembers = $stmt->fetchAll();
-            }
-        }
 
         require_once './views/booking/booking_detail.php';
     }
@@ -382,13 +222,6 @@ class BookingController
                 throw new Exception('Booking không tồn tại!');
             }
 
-            // Validate status
-            $validStatuses = ['Giữ chỗ', 'Đã đặt cọc', 'Đã thanh toán', 'Đã hủy', 'Đã hoàn thành'];
-            $status = $_POST['status'] ?? $oldBooking['status'];
-            if (!in_array($status, $validStatuses)) {
-                throw new Exception('Trạng thái booking không hợp lệ!');
-            }
-
             $data = [
                 'tour_id' => !empty($_POST['tour_id']) ? intval($_POST['tour_id']) : null,
                 'tour_date' => !empty($_POST['tour_date']) ? $_POST['tour_date'] : null,
@@ -403,33 +236,8 @@ class BookingController
                 'num_infants' => intval($_POST['num_infants'] ?? 0),
                 'special_requests' => !empty($_POST['special_requests']) ? $_POST['special_requests'] : null,
                 'total_amount' => floatval($_POST['total_amount']),
-                'status' => $status
+                'status' => $_POST['status']
             ];
-
-            // ========== KIỂM TRA SỐ LƯỢNG KHÁCH KHÔNG VƯỢT QUÁ CHỖ TỐI ĐA ==========
-            // Lấy thông tin lịch khởi hành
-            $tourId = $data['tour_id'];
-            $tourDate = $data['tour_date'];
-
-            if ($tourId && $tourDate) {
-                $conn = connectDB();
-                $stmt = $conn->prepare("SELECT max_participants FROM tour_schedules WHERE tour_id = ? AND departure_date = ? LIMIT 1");
-                $stmt->execute([$tourId, $tourDate]);
-                $schedule = $stmt->fetch();
-
-                if ($schedule) {
-                    $totalGuests = $data['num_adults'] + $data['num_children'] + $data['num_infants'];
-                    $maxParticipants = intval($schedule['max_participants'] ?? 0);
-                    $allowOverbook = !empty($_POST['allow_overbook']) ? 1 : 0;
-
-                    if (!$allowOverbook && $totalGuests > $maxParticipants) {
-                        throw new Exception("Lỗi: Tổng số khách ($totalGuests) vượt quá số chỗ tối đa ($maxParticipants) của lịch! 
-                            Vui lòng giảm số lượng khách hoặc bật tùy chọn 'Cho phép overbook'.");
-                    }
-
-                    $data['allow_overbook'] = $allowOverbook;
-                }
-            }
 
             $this->bookingModel->update($id, $data);
 
@@ -454,8 +262,8 @@ class BookingController
     public function UpdateStatus()
     {
         // Hỗ trợ cả GET và POST
-        $id = (int) ($_POST['booking_id'] ?? $_GET['id'] ?? 0);
-        $status = trim($_POST['status'] ?? $_GET['status'] ?? '');
+        $id = $_POST['booking_id'] ?? $_GET['id'] ?? 0;
+        $status = $_POST['status'] ?? $_GET['status'] ?? '';
 
         try {
             if (empty($id)) {
@@ -469,22 +277,12 @@ class BookingController
             $this->bookingModel->updateStatus($id, $status);
 
             // === Use Case 1: Gửi thông báo thay đổi trạng thái ===
-            switch ($status) {
-                case 'Đã đặt cọc':
-                    $action = 'confirmed';
-                    break;
-                case 'Đã hủy':
-                    $action = 'cancelled';
-                    break;
-                default:
-                    $action = 'updated';
-                    break;
-            }
-            try {
-                notifyBookingStatusChange($id, $action);
-            } catch (Exception $e) {
-                error_log('Notification error: ' . $e->getMessage());
-            }
+            $action = match ($status) {
+                'Đã đặt cọc' => 'confirmed',
+                'Hủy' => 'cancelled',
+                default => 'updated'
+            };
+            notifyBookingStatusChange($id, $action);
 
             // === Use Case 1: Ghi log activity ===
             $this->logBookingActivity($id, 'status_changed', [
@@ -845,347 +643,5 @@ class BookingController
 
         echo '</table>';
         exit();
-    }
-
-    // ==================== DOCUMENT GENERATION ====================
-
-    /**
-     * Tạo và tải báo giá PDF
-     */
-    public function GenerateQuotePDF()
-    {
-        try {
-            $booking_id = $_GET['booking_id'] ?? null;
-            if (!$booking_id) {
-                throw new Exception('Thiếu booking_id!');
-            }
-
-            // Load composer autoload
-            require_once __DIR__ . '/../../vendor/autoload.php';
-
-            $docModel = new BookingDocument();
-
-            // Generate quote data with HTML
-            $quoteData = $docModel->generateQuote($booking_id);
-
-            // Create PDF with mPDF
-            $mpdf = new \Mpdf\Mpdf([
-                'mode' => 'utf-8',
-                'format' => 'A4',
-                'margin_left' => 15,
-                'margin_right' => 15,
-                'margin_top' => 20,
-                'margin_bottom' => 20,
-                'margin_header' => 10,
-                'margin_footer' => 10
-            ]);
-
-            $mpdf->WriteHTML($quoteData['html_content']);
-
-            // Save PDF to file
-            $uploadDir = __DIR__ . '/../../uploads/documents/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
-            }
-
-            $fileName = "bao-gia-{$booking_id}-" . date('Ymd-His') . ".pdf";
-            $filePath = $uploadDir . $fileName;
-            $mpdf->Output($filePath, 'F');
-
-            // Update file path in database
-            $docModel->updateFilePath($quoteData['document_id'], 'uploads/documents/' . $fileName);
-
-            // Download PDF
-            $mpdf->Output($fileName, 'D');
-            exit();
-
-        } catch (Exception $e) {
-            $_SESSION['error'] = 'Lỗi tạo báo giá: ' . $e->getMessage();
-            header('Location: ?act=chi-tiet-booking&id=' . ($booking_id ?? ''));
-            exit();
-        }
-    }
-
-    /**
-     * Tạo và tải hợp đồng PDF
-     */
-    public function GenerateContractPDF()
-    {
-        try {
-            $booking_id = $_GET['booking_id'] ?? null;
-            if (!$booking_id) {
-                throw new Exception('Thiếu booking_id!');
-            }
-
-            require_once __DIR__ . '/../../vendor/autoload.php';
-
-            $docModel = new BookingDocument();
-            $contractData = $docModel->generateContract($booking_id);
-
-            $mpdf = new \Mpdf\Mpdf([
-                'mode' => 'utf-8',
-                'format' => 'A4',
-                'margin_left' => 20,
-                'margin_right' => 20,
-                'margin_top' => 25,
-                'margin_bottom' => 25
-            ]);
-
-            $mpdf->WriteHTML($contractData['html_content']);
-
-            $uploadDir = __DIR__ . '/../../uploads/documents/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
-            }
-
-            $fileName = "hop-dong-{$booking_id}-" . date('Ymd-His') . ".pdf";
-            $filePath = $uploadDir . $fileName;
-            $mpdf->Output($filePath, 'F');
-
-            $docModel->updateFilePath($contractData['document_id'], 'uploads/documents/' . $fileName);
-
-            $mpdf->Output($fileName, 'D');
-            exit();
-
-        } catch (Exception $e) {
-            $_SESSION['error'] = 'Lỗi tạo hợp đồng: ' . $e->getMessage();
-            header('Location: ?act=chi-tiet-booking&id=' . ($booking_id ?? ''));
-            exit();
-        }
-    }
-
-    /**
-     * Tạo và tải hóa đơn VAT PDF
-     */
-    public function GenerateInvoicePDF()
-    {
-        try {
-            $booking_id = $_GET['booking_id'] ?? null;
-            if (!$booking_id) {
-                throw new Exception('Thiếu booking_id!');
-            }
-
-            require_once __DIR__ . '/../../vendor/autoload.php';
-
-            $docModel = new BookingDocument();
-            $invoiceData = $docModel->generateInvoice($booking_id);
-
-            $mpdf = new \Mpdf\Mpdf([
-                'mode' => 'utf-8',
-                'format' => 'A4',
-                'margin_left' => 15,
-                'margin_right' => 15,
-                'margin_top' => 20,
-                'margin_bottom' => 20
-            ]);
-
-            $mpdf->WriteHTML($invoiceData['html_content']);
-
-            $uploadDir = __DIR__ . '/../../uploads/documents/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
-            }
-
-            $fileName = "hoa-don-{$booking_id}-" . date('Ymd-His') . ".pdf";
-            $filePath = $uploadDir . $fileName;
-            $mpdf->Output($filePath, 'F');
-
-            $docModel->updateFilePath($invoiceData['document_id'], 'uploads/documents/' . $fileName);
-
-            $mpdf->Output($fileName, 'D');
-            exit();
-
-        } catch (Exception $e) {
-            $_SESSION['error'] = 'Lỗi tạo hóa đơn: ' . $e->getMessage();
-            header('Location: ?act=chi-tiet-booking&id=' . ($booking_id ?? ''));
-            exit();
-        }
-    }
-
-    /**
-     * Gửi tài liệu qua email
-     */
-    public function SendDocumentEmail()
-    {
-        try {
-            $document_id = $_POST['document_id'] ?? null;
-            $email_to = $_POST['email_to'] ?? null;
-
-            if (!$document_id || !$email_to) {
-                throw new Exception('Thiếu thông tin gửi email!');
-            }
-
-            if (!filter_var($email_to, FILTER_VALIDATE_EMAIL)) {
-                throw new Exception('Email không hợp lệ!');
-            }
-
-            require_once __DIR__ . '/../../vendor/autoload.php';
-
-            $docModel = new BookingDocument();
-            $document = $docModel->getDocumentById($document_id);
-
-            if (!$document) {
-                throw new Exception('Không tìm thấy tài liệu!');
-            }
-
-            // Check access permission
-            if (!$docModel->canAccess($document_id)) {
-                throw new Exception('Bạn không có quyền gửi tài liệu này!');
-            }
-
-            // Send email with PHPMailer
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
-
-            // SMTP configuration
-            $mail->isSMTP();
-            $mail->Host = 'smtp.gmail.com'; // TODO: Move to config
-            $mail->SMTPAuth = true;
-            $mail->Username = 'your-email@gmail.com'; // TODO: Move to env
-            $mail->Password = 'your-app-password'; // TODO: Move to env
-            $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
-            $mail->CharSet = 'UTF-8';
-
-            // Email content
-            $mail->setFrom('info@abctravel.vn', 'ABC Travel');
-            $mail->addAddress($email_to);
-
-            $documentTypes = [
-                'QUOTE' => 'Báo giá',
-                'CONTRACT' => 'Hợp đồng',
-                'INVOICE' => 'Hóa đơn'
-            ];
-
-            $docTypeName = $documentTypes[$document['document_type']] ?? 'Tài liệu';
-            $mail->Subject = $docTypeName . ' - ' . $document['document_number'];
-
-            $mail->isHTML(true);
-            $mail->Body = "
-                <p>Kính gửi Quý khách,</p>
-                <p>Đính kèm {$docTypeName} <strong>{$document['document_number']}</strong> từ ABC Travel.</p>
-                <p>Vui lòng xem và phản hồi nếu có thắc mắc.</p>
-                <p>Trân trọng,<br>ABC Travel</p>
-            ";
-
-            // Attach PDF file
-            if ($document['file_path'] && file_exists(__DIR__ . '/../../' . $document['file_path'])) {
-                $mail->addAttachment(__DIR__ . '/../../' . $document['file_path'], $document['file_name']);
-            }
-
-            $mail->send();
-
-            // Mark as sent
-            $docModel->markAsSent($document_id, $email_to);
-
-            $_SESSION['success'] = "Đã gửi {$docTypeName} đến {$email_to}!";
-            header('Location: ?act=chi-tiet-booking&id=' . $document['booking_id']);
-            exit();
-
-        } catch (Exception $e) {
-            $_SESSION['error'] = 'Lỗi gửi email: ' . $e->getMessage();
-            $booking_id = $document['booking_id'] ?? ($_POST['booking_id'] ?? '');
-            header('Location: ?act=chi-tiet-booking&id=' . $booking_id);
-            exit();
-        }
-    }
-
-    /**
-     * Xem danh sách tài liệu của booking
-     */
-    public function ViewDocuments()
-    {
-        $booking_id = $_GET['booking_id'] ?? null;
-        if (!$booking_id) {
-            $_SESSION['error'] = 'Thiếu booking_id!';
-            header('Location: ?act=danh-sach-booking');
-            exit();
-        }
-
-        $docModel = new BookingDocument();
-        $documents = $docModel->getDocumentsByBooking($booking_id);
-        $booking = $this->bookingModel->getById($booking_id);
-
-        require_once './views/booking/documents_list.php';
-    }
-
-    /**
-     * Tải document đã tạo
-     */
-    public function DownloadDocument()
-    {
-        try {
-            $document_id = $_GET['document_id'] ?? null;
-            if (!$document_id) {
-                throw new Exception('Thiếu document_id!');
-            }
-
-            $docModel = new BookingDocument();
-
-            if (!$docModel->canAccess($document_id)) {
-                throw new Exception('Bạn không có quyền tải tài liệu này!');
-            }
-
-            $document = $docModel->getDocumentById($document_id);
-            if (!$document) {
-                throw new Exception('Không tìm thấy tài liệu!');
-            }
-
-            $filePath = __DIR__ . '/../../' . $document['file_path'];
-            if (!file_exists($filePath)) {
-                throw new Exception('File không tồn tại!');
-            }
-
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="' . $document['file_name'] . '"');
-            header('Content-Length: ' . filesize($filePath));
-            readfile($filePath);
-            exit();
-
-        } catch (Exception $e) {
-            $_SESSION['error'] = 'Lỗi tải file: ' . $e->getMessage();
-            header('Location: ?act=danh-sach-booking');
-            exit();
-        }
-    }
-
-    /**
-     * In tài liệu (mở PDF trong tab mới)
-     */
-    public function PrintDocument()
-    {
-        try {
-            $document_id = $_GET['document_id'] ?? null;
-            if (!$document_id) {
-                throw new Exception('Thiếu document_id!');
-            }
-
-            $docModel = new BookingDocument();
-
-            if (!$docModel->canAccess($document_id)) {
-                throw new Exception('Bạn không có quyền in tài liệu này!');
-            }
-
-            $document = $docModel->getDocumentById($document_id);
-            if (!$document) {
-                throw new Exception('Không tìm thấy tài liệu!');
-            }
-
-            $filePath = __DIR__ . '/../../' . $document['file_path'];
-            if (!file_exists($filePath)) {
-                throw new Exception('File không tồn tại!');
-            }
-
-            // Open PDF in browser (inline) for printing
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: inline; filename="' . $document['file_name'] . '"');
-            header('Content-Length: ' . filesize($filePath));
-            readfile($filePath);
-            exit();
-
-        } catch (Exception $e) {
-            $_SESSION['error'] = 'Lỗi mở file: ' . $e->getMessage();
-            header('Location: ?act=danh-sach-booking');
-            exit();
-        }
     }
 }

@@ -47,37 +47,6 @@
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="form-group">
-                                                    <!-- Thông tin khách liên hệ -->
-                                                    <h5 class="mt-2 mb-1">Thông tin khách/đơn vị liên hệ</h5>
-                                                    <div class="row">
-                                                        <div class="col-md-4">
-                                                            <div class="form-group">
-                                                                <label for="customer_name">Họ tên</label>
-                                                                <input type="text" name="customer_name"
-                                                                    id="customer_name" class="form-control"
-                                                                    value="<?= htmlspecialchars($schedule['customer_name'] ?? '') ?>"
-                                                                    placeholder="VD: Nguyễn Văn A">
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-4">
-                                                            <div class="form-group">
-                                                                <label for="customer_phone">SĐT</label>
-                                                                <input type="tel" name="customer_phone"
-                                                                    id="customer_phone" class="form-control"
-                                                                    value="<?= htmlspecialchars($schedule['customer_phone'] ?? '') ?>"
-                                                                    placeholder="VD: 0901234567">
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-4">
-                                                            <div class="form-group">
-                                                                <label for="customer_email">Email</label>
-                                                                <input type="email" name="customer_email"
-                                                                    id="customer_email" class="form-control"
-                                                                    value="<?= htmlspecialchars($schedule['customer_email'] ?? '') ?>"
-                                                                    placeholder="VD: khach@congty.com">
-                                                            </div>
-                                                        </div>
-                                                    </div>
                                                     <label for="departure_date">Ngày khởi hành <span
                                                             class="text-danger">*</span></label>
                                                     <input type="date" name="departure_date" id="departure_date"
@@ -119,38 +88,6 @@
                                             <input type="number" name="max_participants" id="max_participants"
                                                 class="form-control" value="<?= $schedule['max_participants'] ?? 0 ?>"
                                                 min="1">
-                                        </div>
-
-                                        <!-- Số lượng khách -->
-                                        <h5 class="mt-3 mb-2">Số lượng khách dự kiến</h5>
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="num_adults">Người lớn (NL)</label>
-                                                    <input type="number" name="num_adults" id="num_adults"
-                                                        class="form-control" value="<?= $schedule['num_adults'] ?? 0 ?>"
-                                                        min="0">
-                                                    <small class="text-muted">Từ 12 tuổi trở lên</small>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="num_children">Trẻ em (TE)</label>
-                                                    <input type="number" name="num_children" id="num_children"
-                                                        class="form-control"
-                                                        value="<?= $schedule['num_children'] ?? 0 ?>" min="0">
-                                                    <small class="text-muted">Từ 6-11 tuổi</small>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="num_infants">Em bé</label>
-                                                    <input type="number" name="num_infants" id="num_infants"
-                                                        class="form-control"
-                                                        value="<?= $schedule['num_infants'] ?? 0 ?>" min="0">
-                                                    <small class="text-muted">Dưới 6 tuổi</small>
-                                                </div>
-                                            </div>
                                         </div>
 
                                         <div class="row">
@@ -196,13 +133,6 @@
                                             của nhân sự đã phân công.
                                         </div>
 
-                                        <div class="alert alert-info">
-                                            <i class="feather icon-info"></i>
-                                            <strong>Tự động đồng bộ:</strong> Khi bạn cập nhật lịch, tất cả thông tin
-                                            booking liên quan sẽ tự động cập nhật (giá, điểm tập trung, giờ tập trung,
-                                            v.v.)
-                                        </div>
-
                                         <div class="form-group">
                                             <button type="submit" class="btn btn-primary mr-1">
                                                 <i class="feather icon-save"></i> Cập nhật
@@ -232,27 +162,6 @@
         if (departureDate && returnDate && returnDate < departureDate) {
             alert('Ngày kết thúc phải sau ngày khởi hành!');
             this.value = '';
-        }
-    });
-
-    // Validate guest count updates
-    const guestFields = ['num_adults', 'num_children', 'num_infants'];
-    guestFields.forEach(field => {
-        const element = document.getElementById(field);
-        if (element) {
-            element.addEventListener('change', function () {
-                const adults = parseInt(document.getElementById('num_adults').value) || 0;
-                const children = parseInt(document.getElementById('num_children').value) || 0;
-                const infants = parseInt(document.getElementById('num_infants').value) || 0;
-                const totalGuests = adults + children + infants;
-                const maxParticipants = parseInt(document.getElementById('max_participants').value) || 0;
-
-                if (totalGuests > maxParticipants) {
-                    const message = `Lỗi: Tổng số khách (${totalGuests}) vượt quá số chỗ tối đa (${maxParticipants})!`;
-                    alert(message);
-                    this.focus();
-                }
-            });
         }
     });
 </script>
