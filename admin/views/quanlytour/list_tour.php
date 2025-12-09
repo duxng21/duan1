@@ -33,17 +33,45 @@
                         <?php endif; ?>
                     </form>
 
-                    <!-- NÚT THÊM MỚI BÊN PHẢI -->
-                    <a href="?act=add-list" class="btn btn-primary">
-                        <i class="feather icon-plus"></i> Thêm mới
-                    </a>
+                    <!-- NÚT THÊM MỚI & BULK SEED BÊN PHẢI -->
+                    <div class="btn-group">
+                        <a href="?act=add-list" class="btn btn-primary">
+                            <i class="feather icon-plus"></i> Thêm mới
+                        </a>
+                        <?php if (function_exists('isAdmin') && isAdmin()): ?>
+                            <a href="?act=seed-all-tours"
+                                onclick="return confirm('Seed lịch trình & chính sách mẫu cho tất cả tour chưa có?');"
+                                class="btn btn-outline-secondary">
+                                <i class="feather icon-database"></i> Seed tất cả
+                            </a>
+                        <?php endif; ?>
+                    </div>
 
                 </div>
 
                 <!-- DataTable starts -->
                 <div class="table-responsive">
                     <!-- Thay đổi: đồng bộ header và body với bảng bên dưới, sửa lỗi ký tự '<' dư và escape dữ liệu -->
-                    <table class="table data-list-view">
+                    <style>
+                        /* Tăng kích thước chữ bảng tour một chút */
+                        .tour-table td,
+                        .tour-table th {
+                            font-size: 0.95rem;
+                        }
+
+                        .tour-table .product-name {
+                            font-weight: 600;
+                        }
+
+                        .tour-table tbody tr {
+                            cursor: pointer;
+                        }
+
+                        .tour-table .collapse td {
+                            font-size: 0.85rem;
+                        }
+                    </style>
+                    <table class="table data-list-view tour-table">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -58,6 +86,7 @@
                         </thead>
                         <tbody>
                             <?php foreach ($tours as $row): ?>
+                                <?php $tourId = htmlspecialchars($row['tour_id'] ?? ''); ?>
                                 <tr>
                                     <td><?= htmlspecialchars($row['tour_id'] ?? '') ?></td>
                                     <td class="product-name"><?= htmlspecialchars($row['tour_name'] ?? '') ?></td>
@@ -66,63 +95,44 @@
                                     <td><?= htmlspecialchars($row['duration_days'] ?? 0) ?> ngày</td>
                                     <td class="product-price"><?= htmlspecialchars($row['start_location'] ?? '') ?></td>
                                     <td><?php
-                                    $statusClass = match ($row['status'] ?? 'Draft') {
-                                        'Public' => 'badge-success',
-                                        'Hidden' => 'badge-warning',
-                                        default => 'badge-secondary'
-                                    };
+                                    switch ($row['status'] ?? 'Draft') {
+                                        case 'Public':
+                                            $statusClass = 'badge-success';
+                                            break;
+                                        case 'Hidden':
+                                            $statusClass = 'badge-warning';
+                                            break;
+                                        default:
+                                            $statusClass = 'badge-secondary';
+                                            break;
+                                    }
                                     ?>
-                                        <span class="badge <?= $statusClass ?>"><?= htmlspecialchars($row['status'] ?? 'Draft') ?></span>
+                                        <span
+                                            class="badge <?= $statusClass ?>"><?= htmlspecialchars($row['status'] ?? 'Draft') ?></span>
                                     </td>
                                     <td class="product-action">
-                                        <a href="?act=chi-tiet-tour&id=<?= htmlspecialchars($row['tour_id'] ?? '') ?>"
-                                            title="Chi tiết tour"><span class="action-detail"><i
-                                                    class="feather icon-eye"></i></span></a>
                                         <a href="?act=edit-list&id=<?= htmlspecialchars($row['tour_id'] ?? '') ?>"
                                             title="Sửa tour"><span class="action-edit"><i
                                                     class="feather icon-edit"></i></span></a>
+                                        <a href="?act=clone-tour-form&id=<?= htmlspecialchars($row['tour_id'] ?? '') ?>"
+                                            title="Clone tour"><span class="action-clone"><i
+                                                    class="feather icon-copy text-info"></i></span></a>
+                                        <a href="?act=quan-ly-phien-ban&tour_id=<?= htmlspecialchars($row['tour_id'] ?? '') ?>"
+                                            title="Quản lý phiên bản"><span class="action-versions"><i
+                                                    class="feather icon-layers text-primary"></i></span></a>
                                         <a onclick="return confirm('Xóa tour này?')"
                                             href="?act=xoa-tour&id=<?= htmlspecialchars($row['tour_id'] ?? '') ?>"
                                             title="Xóa tour"><span class="action-delete"><i
                                                     class="feather icon-trash"></i></span></a>
+                                        <?php if (function_exists('isAdmin') && isAdmin() && ((int) ($row['itinerary_count'] ?? 0) === 0 || (int) ($row['has_policies'] ?? 0) === 0)): ?>
+                                            <a href="?act=seed-tour-data&id=<?= $tourId ?>" title="Seed dữ liệu mẫu"
+                                                onclick="return confirm('Seed lịch trình & chính sách mẫu cho tour này?');">
+                                                <span class="action-seed"><i class="feather icon-database"></i></span>
+                                            </a>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
-                                    <tr id="detail-row-<?= $tourId ?>" class="collapse bg-light">
-                                        <td colspan="8" class="p-2">
-                                            <div class="row no-gutters">
-                                                <div class="col-md-3 col-sm-4 col-12 pr-2 mb-2">
-                                                    <?php if (!empty($row['tour_image'])): ?>
-                                                        <img src="<?= BASE_URL . htmlspecialchars($row['tour_image']) ?>" alt="Ảnh tour" class="img-fluid rounded shadow-sm w-100">
-                                                    <?php else: ?>
-                                                        <div class="text-muted small">Chưa có ảnh đại diện</div>
-                                                    <?php endif; ?>
-                                                    <div class="mt-1 small">
-                                                        <strong>Ảnh:</strong> <?= (int)($row['image_count'] ?? 0) ?>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-9 col-sm-8 col-12 pl-2">
-                                                    <div class="row">
-                                                        <div class="col-md-6 col-12 small">
-                                                            <div class="mb-1"><strong>Giá chuẩn:</strong> <?= isset($row['tour_price']) ? number_format($row['tour_price']) . ' đ' : 'Chưa có'; ?></div>
-                                                            <div class="mb-1"><strong>Điểm xuất phát:</strong> <?= htmlspecialchars($row['start_location'] ?? 'Đang cập nhật') ?></div>
-                                                            <div class="mb-1"><strong>Lịch khởi hành:</strong> <?= (int)($row['schedule_count'] ?? 0) ?> lịch</div>
-                                                            <div class="mb-1"><strong>Lịch trình ngày:</strong> <?= (int)($row['itinerary_count'] ?? 0) ?> mục</div>
-                                                        </div>
-                                                        <div class="col-md-6 col-12 small">
-                                                            <div class="mb-1"><strong>Tags:</strong> <?= !empty($row['tag_list']) ? htmlspecialchars($row['tag_list']) : '<span class="text-muted">Chưa có</span>' ?></div>
-                                                            <div class="mb-1"><strong>Chính sách:</strong> <?= (isset($row['has_policies']) && $row['has_policies'] > 0) ? '<span class="text-success">Đã thiết lập</span>' : '<span class="text-muted">Chưa có</span>' ?></div>
-                                                            <div class="mb-1"><strong>Trạng thái:</strong> <span class="badge <?= $statusClass ?>"><?= htmlspecialchars($row['status'] ?? 'Draft') ?></span></div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="mt-2">
-                                                        <a href="?act=chi-tiet-tour&id=<?= $tourId ?>" class="btn btn-sm btn-primary">Quản lý chi tiết đầy đủ</a>
-                                                        <a href="?act=them-lich-khoi-hanh&tour_id=<?= $tourId ?>" class="btn btn-sm btn-outline-success">Thêm lịch khởi hành</a>
-                                                        <a href="?act=edit-list&id=<?= $tourId ?>" class="btn btn-sm btn-outline-warning">Sửa thông tin</a>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
+
                             <?php endforeach; ?>
                         </tbody>
                     </table>

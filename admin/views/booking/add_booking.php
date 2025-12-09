@@ -31,7 +31,25 @@
                                 <div class="card-body">
                                     <form action="?act=luu-booking" method="POST" id="bookingForm">
 
+                                        <?php if (isset($prefill) && is_array($prefill)): ?>
+                                            <input type="hidden" name="schedule_id"
+                                                value="<?= (int) $prefill['schedule_id'] ?>">
+                                            <input type="hidden" id="override_price_adult"
+                                                value="<?= (float) $prefill['price_adult'] ?>">
+                                            <input type="hidden" id="override_price_child"
+                                                value="<?= (float) $prefill['price_child'] ?>">
+                                        <?php endif; ?>
+
                                         <!-- Loại Booking -->
+                                        <div class="col-md-6 d-flex align-items-center">
+                                            <div class="custom-control custom-checkbox mt-2">
+                                                <input type="checkbox" class="custom-control-input" id="allow_overbook"
+                                                    name="allow_overbook" value="1">
+                                                <label class="custom-control-label" for="allow_overbook">
+                                                    Cho phép vượt số chỗ (Admin)
+                                                </label>
+                                            </div>
+                                        </div>
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group">
@@ -60,36 +78,59 @@
                                         </div>
 
                                         <div class="row">
-                                            <!-- Tour -->
-                                            <div class="col-md-6">
+                                            <!-- Lịch khởi hành -->
+                                            <div class="col-md-12">
                                                 <div class="form-group">
-                                                    <label for="tour_id">Tour <span class="text-danger">*</span></label>
-                                                    <select name="tour_id" id="tour_id" class="form-control" required
-                                                        onchange="updateTourPrice()">
-                                                        <option value="">-- Chọn tour --</option>
-                                                        <?php foreach ($tours as $tour): ?>
-                                                            <option value="<?= $tour['tour_id'] ?>"
-                                                                data-price-adult="<?= $tour['price_adult'] ?>"
-                                                                data-price-child="<?= $tour['price_child'] ?>"
-                                                                data-duration="<?= $tour['duration_days'] ?>">
-                                                                <?= htmlspecialchars($tour['tour_name']) ?>
-                                                                <?php if ($tour['price_adult'] > 0): ?>
-                                                                    - <?= number_format($tour['price_adult'], 0, ',', '.') ?>
-                                                                    đ/NL
-                                                                <?php endif; ?>
+                                                    <label for="schedule_id">Chọn lịch khởi hành <span class="text-danger">*</span></label>
+                                                    <select name="schedule_id" id="schedule_id" class="form-control" required
+                                                        onchange="updateScheduleInfo()">
+                                                        <option value="">-- Chọn lịch khởi hành --</option>
+                                                        <?php foreach ($schedules as $sch): ?>
+                                                            <option value="<?= $sch['schedule_id'] ?>" 
+                                                                <?= (isset($prefill) && (int)$prefill['schedule_id'] === (int)$sch['schedule_id']) ? 'selected' : '' ?>
+                                                                data-tour-name="<?= htmlspecialchars($sch['tour_name']) ?>"
+                                                                data-tour-code="<?= htmlspecialchars($sch['tour_code']) ?>"
+                                                                data-departure="<?= $sch['departure_date'] ?>"
+                                                                data-return="<?= $sch['return_date'] ?>"
+                                                                data-price-adult="<?= $sch['price_adult'] ?>"
+                                                                data-price-child="<?= $sch['price_child'] ?>"
+                                                                data-available="<?= $sch['available_slots'] ?>"
+                                                                data-meeting-point="<?= htmlspecialchars($sch['meeting_point']) ?>"
+                                                                data-meeting-time="<?= $sch['meeting_time'] ?>"
+                                                                data-num-adults="<?= (int) ($sch['num_adults'] ?? 0) ?>"
+                                                                data-num-children="<?= (int) ($sch['num_children'] ?? 0) ?>"
+                                                                data-num-infants="<?= (int) ($sch['num_infants'] ?? 0) ?>">
+                                                                [<?= date('d/m/Y', strtotime($sch['departure_date'])) ?>] 
+                                                                <?= htmlspecialchars($sch['tour_name']) ?> 
+                                                                - NL: <?= number_format($sch['price_adult'], 0, ',', '.') ?>đ
+                                                                / TE: <?= number_format($sch['price_child'], 0, ',', '.') ?>đ
+                                                                (Còn <?= $sch['available_slots'] ?> chỗ)
                                                             </option>
                                                         <?php endforeach; ?>
                                                     </select>
+                                                    <small class="text-muted">Chọn lịch khởi hành cụ thể với giá và ngày đã được xác định</small>
                                                 </div>
                                             </div>
-
-                                            <!-- Ngày khởi hành mong muốn -->
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label for="tour_date">Ngày khởi hành mong muốn</label>
-                                                    <input type="date" name="tour_date" id="tour_date"
-                                                        class="form-control" min="<?= date('Y-m-d') ?>">
-                                                    <small class="text-muted">Hệ thống sẽ kiểm tra chỗ trống</small>
+                                        </div>
+                                        
+                                        <!-- Thông tin lịch được chọn (Read-only từ schedule) -->
+                                        <div id="schedule-info" class="alert alert-info" style="display:none;">
+                                            <h6 class="mb-1"><i class="feather icon-info"></i> Thông tin lịch khởi hành (từ hợp đồng):</h6>
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <strong>Tour:</strong> <span id="info-tour-name"></span><br>
+                                                    <strong>Mã:</strong> <span id="info-tour-code"></span><br>
+                                                    <strong>Khởi hành:</strong> <span id="info-departure"></span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <strong>Kết thúc:</strong> <span id="info-return"></span><br>
+                                                    <strong>Giá NL:</strong> <span id="info-price-adult"></span> đ<br>
+                                                    <strong>Giá TE:</strong> <span id="info-price-child"></span> đ
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <strong>Người lớn:</strong> <span id="info-num-adults"></span><br>
+                                                    <strong>Trẻ em:</strong> <span id="info-num-children"></span><br>
+                                                    <strong>Em bé:</strong> <span id="info-num-infants"></span>
                                                 </div>
                                             </div>
                                         </div>
@@ -158,34 +199,33 @@
                                             </div>
                                         </div>
 
-                                        <!-- Số lượng khách -->
-                                        <h5 class="mt-2 mb-1"><i class="feather icon-users"></i> Số lượng khách</h5>
+                                        <!-- Số lượng khách (Read-only từ schedule) -->
+                                        <h5 class="mt-2 mb-1"><i class="feather icon-users"></i> Số lượng khách (theo hợp đồng lịch)</h5>
                                         <div class="row">
                                             <div class="col-md-4">
                                                 <div class="form-group">
-                                                    <label for="num_adults">Người lớn <span
-                                                            class="text-danger">*</span></label>
-                                                    <input type="number" name="num_adults" id="num_adults"
-                                                        class="form-control" min="1" value="1" required
-                                                        onchange="calculateTotal()">
+                                                    <label for="num_adults_display">Người lớn</label>
+                                                    <input type="text" id="num_adults_display"
+                                                        class="form-control" readonly>
+                                                    <input type="hidden" name="num_adults" id="num_adults">
                                                     <small class="text-muted">Từ 12 tuổi trở lên</small>
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="form-group">
-                                                    <label for="num_children">Trẻ em</label>
-                                                    <input type="number" name="num_children" id="num_children"
-                                                        class="form-control" min="0" value="0"
-                                                        onchange="calculateTotal()">
+                                                    <label for="num_children_display">Trẻ em</label>
+                                                    <input type="text" id="num_children_display"
+                                                        class="form-control" readonly>
+                                                    <input type="hidden" name="num_children" id="num_children">
                                                     <small class="text-muted">Từ 6-11 tuổi</small>
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="form-group">
-                                                    <label for="num_infants">Em bé</label>
-                                                    <input type="number" name="num_infants" id="num_infants"
-                                                        class="form-control" min="0" value="0"
-                                                        onchange="calculateTotal()">
+                                                    <label for="num_infants_display">Em bé</label>
+                                                    <input type="text" id="num_infants_display"
+                                                        class="form-control" readonly>
+                                                    <input type="hidden" name="num_infants" id="num_infants">
                                                     <small class="text-muted">Dưới 6 tuổi</small>
                                                 </div>
                                             </div>
@@ -221,9 +261,10 @@
                                                 <div class="form-group">
                                                     <label for="status">Trạng thái</label>
                                                     <select name="status" id="status" class="form-control">
-                                                        <option value="Chờ xác nhận" selected>Chờ xác nhận</option>
+                                                        <option value="Giữ chỗ" selected>Giữ chỗ</option>
                                                         <option value="Đã đặt cọc">Đã đặt cọc</option>
-                                                        <option value="Hoàn tất">Hoàn tất</option>
+                                                        <option value="Đã thanh toán">Đã thanh toán</option>
+                                                        <option value="Đã hoàn thành">Đã hoàn thành</option>
                                                     </select>
                                                 </div>
                                             </div>
@@ -258,8 +299,7 @@
                                         <div class="alert alert-info mt-3">
                                             <h5><i class="feather icon-info"></i> Lưu ý:</h5>
                                             <ul class="mb-0">
-                                                <li>Hệ thống sẽ tự động kiểm tra chỗ trống nếu bạn chọn ngày khởi hành
-                                                </li>
+                                                <li>Hệ thống sẽ kiểm tra thông tin booking trước khi tạo</li>
                                                 <li>Booking sẽ được xác nhận tạm thời, cần duyệt bởi admin</li>
                                                 <li>Đoàn đông người vui lòng liên hệ trước để đảm bảo chỗ</li>
                                             </ul>
@@ -286,6 +326,23 @@
 <!-- END: Content-->
 
 <script>
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        const scheduleSelect = document.getElementById('schedule_id');
+
+        // If schedule prefilled, just render it
+        if (scheduleSelect && scheduleSelect.value) {
+            updateScheduleInfo();
+            return;
+        }
+
+        // Auto-select first available schedule to show dữ liệu cho người dùng
+        if (scheduleSelect && scheduleSelect.options.length > 1) {
+            scheduleSelect.selectedIndex = 1; // skip placeholder
+            updateScheduleInfo();
+        }
+    });
+
     function toggleBookingType() {
         const isGroup = document.getElementById('type_group').checked;
         document.getElementById('customer-section').style.display = isGroup ? 'none' : 'block';
@@ -305,13 +362,58 @@
         document.getElementById('contact_phone').required = isGroup;
     }
 
-    function updateTourPrice() {
+    function updateScheduleInfo() {
+        const scheduleSelect = document.getElementById('schedule_id');
+        const selectedOption = scheduleSelect.options[scheduleSelect.selectedIndex];
+        
+        if (!selectedOption.value) {
+            document.getElementById('schedule-info').style.display = 'none';
+            return;
+        }
+
+        // Hiển thị thông tin lịch (đặc biệt là số lượng khách)
+        document.getElementById('info-tour-name').textContent = selectedOption.getAttribute('data-tour-name');
+        document.getElementById('info-tour-code').textContent = selectedOption.getAttribute('data-tour-code');
+        document.getElementById('info-departure').textContent = new Date(selectedOption.getAttribute('data-departure')).toLocaleDateString('vi-VN');
+        document.getElementById('info-return').textContent = new Date(selectedOption.getAttribute('data-return')).toLocaleDateString('vi-VN');
+        document.getElementById('info-price-adult').textContent = new Intl.NumberFormat('vi-VN').format(selectedOption.getAttribute('data-price-adult'));
+        document.getElementById('info-price-child').textContent = new Intl.NumberFormat('vi-VN').format(selectedOption.getAttribute('data-price-child'));
+        
+        // Lấy số lượng khách từ schedule (từ data attributes)
+        const numAdults = parseInt(selectedOption.getAttribute('data-num-adults') || 0);
+        const numChildren = parseInt(selectedOption.getAttribute('data-num-children') || 0);
+        const numInfants = parseInt(selectedOption.getAttribute('data-num-infants') || 0);
+        
+        // Gán vào fields display (readonly)
+        document.getElementById('num_adults_display').value = numAdults;
+        document.getElementById('num_children_display').value = numChildren;
+        document.getElementById('num_infants_display').value = numInfants;
+        
+        // Gán vào hidden fields để submit
+        document.getElementById('num_adults').value = numAdults;
+        document.getElementById('num_children').value = numChildren;
+        document.getElementById('num_infants').value = numInfants;
+        
+        // Hiển thị thông tin trong schedule-info box
+        document.getElementById('info-num-adults').textContent = numAdults;
+        document.getElementById('info-num-children').textContent = numChildren;
+        document.getElementById('info-num-infants').textContent = numInfants;
+        
+        document.getElementById('schedule-info').style.display = 'block';
+        
+        // Tính toán tổng tiền
         calculateTotal();
     }
 
     function calculateTotal() {
-        const tourSelect = document.getElementById('tour_id');
-        const selectedOption = tourSelect.options[tourSelect.selectedIndex];
+        const scheduleSelect = document.getElementById('schedule_id');
+        const selectedOption = scheduleSelect.options[scheduleSelect.selectedIndex];
+        
+        if (!selectedOption.value) {
+            document.getElementById('total_amount').value = 0;
+            return;
+        }
+        
         const priceAdult = parseFloat(selectedOption.getAttribute('data-price-adult')) || 0;
         const priceChild = parseFloat(selectedOption.getAttribute('data-price-child')) || 0;
 
@@ -323,9 +425,7 @@
         const total = (numAdults * priceAdult) + (numChildren * priceChild) + (numInfants * priceChild * 0.1);
 
         document.getElementById('total_amount').value = Math.round(total);
-    }
-
-    function addServiceRow() {
+    }    function addServiceRow() {
         const container = document.getElementById('services-container');
         const newRow = document.createElement('div');
         newRow.className = 'row service-row mb-2';
@@ -354,25 +454,29 @@
 
     // Auto-calculate on page load
     document.addEventListener('DOMContentLoaded', function () {
-        calculateTotal();
+        // Nếu đã có schedule được chọn sẵn, hiển thị info
+        const scheduleSelect = document.getElementById('schedule_id');
+        if (scheduleSelect.value) {
+            updateScheduleInfo();
+        }
 
         // Thêm validation trước khi submit
         document.getElementById('bookingForm').addEventListener('submit', function (e) {
             const isGroup = document.getElementById('type_group').checked;
             const customerId = document.getElementById('customer_id').value;
-            const tourId = document.getElementById('tour_id').value;
+            const scheduleId = document.getElementById('schedule_id').value;
             const numAdults = parseInt(document.getElementById('num_adults').value) || 0;
 
-            // Validate tour
-            if (!tourId) {
-                alert('Vui lòng chọn tour!');
+            // Validate schedule
+            if (!scheduleId) {
+                alert('Vui lòng chọn lịch khởi hành!');
                 e.preventDefault();
                 return false;
             }
 
-            // Validate số người lớn
+            // Validate số người lớn (phải > 0 từ schedule)
             if (numAdults < 1) {
-                alert('Số người lớn phải >= 1!');
+                alert('Lịch khởi hành phải có ít nhất 1 người lớn!');
                 e.preventDefault();
                 return false;
             }

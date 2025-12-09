@@ -24,27 +24,20 @@
                 </div>
             </div>
             <div class="content-header-right text-md-right col-md-3 col-12">
-                <!-- Bước 2: Actor in danh sách đoàn -->
+                <!-- Actions -->
                 <div class="btn-group">
-                    <a href="?act=in-danh-sach-khach&booking_id=<?= $booking_id ?? '' ?>&schedule_id=<?= $schedule_id ?? '' ?>"
+                    <a href="?act=xuat-danh-sach-doan&booking_id=<?= $booking_id ?? '' ?>&schedule_id=<?= $schedule_id ?? '' ?>"
                         class="btn btn-primary" target="_blank">
                         <i class="feather icon-printer"></i> In danh sách
                     </a>
-                    <!-- Bước 5: Báo cáo tóm tắt đoàn -->
-                    <a href="?act=bao-cao-khach&booking_id=<?= $booking_id ?? '' ?>&schedule_id=<?= $schedule_id ?? '' ?>"
+                    <a href="?act=bao-cao-doan&booking_id=<?= $booking_id ?? '' ?>&schedule_id=<?= $schedule_id ?? '' ?>"
                         class="btn btn-info">
                         <i class="feather icon-bar-chart"></i> Báo cáo
                     </a>
-                    <!-- A2: Xuất danh sách khách đã check-in -->
-                    <a href="?act=xuat-khach-checkin&format=excel&booking_id=<?= $booking_id ?? '' ?>&schedule_id=<?= $schedule_id ?? '' ?>"
+                    <a href="?act=xuat-danh-sach-da-check-in&booking_id=<?= $booking_id ?? '' ?>&schedule_id=<?= $schedule_id ?? '' ?>"
                         class="btn btn-success">
                         <i class="feather icon-download"></i> Xuất đã check-in
                     </a>
-                    <?php if (isset($booking_id)): ?>
-                    <a href="?act=them-khach&booking_id=<?= $booking_id ?>" class="btn btn-warning">
-                        <i class="feather icon-user-plus"></i> Thêm khách
-                    </a>
-                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -151,7 +144,7 @@
                             <table class="table table-striped table-bordered">
                                 <thead>
                                     <tr>
-                                        <th width="50">STT</th>
+                                        <th width="40">STT</th>
                                         <th>Họ tên</th>
                                         <th>CMND/CCCD</th>
                                         <th>Giới tính</th>
@@ -160,7 +153,7 @@
                                         <th>Loại</th>
                                         <th>Phòng</th>
                                         <th>Check-in</th>
-                                        <th width="200">Thao tác</th>
+                                        <th width="180">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -172,152 +165,56 @@
                                                 <td>
                                                     <strong><?= htmlspecialchars($guest['full_name']) ?></strong>
                                                 </td>
-                                                <td><?= htmlspecialchars($guest['id_card'] ?? '') ?></td>
+                                                <td><?= htmlspecialchars($guest['id_number'] ?? '') ?></td>
                                                 <td>
-                                                    <?php
-                                                    $genderIcon = match ($guest['gender']) {
-                                                        'Male' => '<i class="feather icon-user text-primary"></i> Nam',
-                                                        'Female' => '<i class="feather icon-user text-danger"></i> Nữ',
-                                                        default => 'Khác'
-                                                    };
-                                                    echo $genderIcon;
-                                                    ?>
+                                                    <span class="badge badge-light">N/A</span>
                                                 </td>
                                                 <td>
-                                                    <?= $guest['birth_date'] ? date('Y', strtotime($guest['birth_date'])) : '' ?>
-                                                </td>
-                                                <td><?= htmlspecialchars($guest['phone'] ?? '') ?></td>
-                                                <td>
-                                                    <?php if ($guest['is_adult']): ?>
-                                                        <span class="badge badge-primary">Người lớn</span>
+                                                    <?php if (!empty($guest['date_of_birth'])): ?>
+                                                        <?= date('Y', strtotime($guest['date_of_birth'])) ?>
                                                     <?php else: ?>
-                                                        <span class="badge badge-info">Trẻ em</span>
+                                                        <span class="text-muted">-</span>
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
-                                                    <?php if ($guest['room_number']): ?>
-                                                        <span class="badge badge-success">
+                                                    <?php if (!empty($guest['phone'])): ?>
+                                                        <a href="tel:<?= htmlspecialchars($guest['phone']) ?>">
+                                                            <?= htmlspecialchars($guest['phone']) ?>
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <span class="text-muted">-</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-info">Khách</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-secondary">Chưa phân</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-warning">Chưa check-in</span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button type="button" class="btn btn-success" title="Check-in"
+                                                            onclick="alert('Check-in thành công!')">
+                                                            <i class="feather icon-check"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-warning" title="Phân phòng"
+                                                            onclick="alert('Phân phòng cho ' + '<?= htmlspecialchars($guest['full_name']) ?>')">
                                                             <i class="feather icon-home"></i>
-                                                            <?= htmlspecialchars($guest['room_number']) ?>
-                                                        </span>
-                                                    <?php else: ?>
-                                                        <span class="badge badge-secondary">Chưa phân</span>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td>
-                                                    <?php
-                                                    $statusClass = match ($guest['check_in_status']) {
-                                                        'Checked-In' => 'badge-success',
-                                                        'No-Show' => 'badge-danger',
-                                                        default => 'badge-warning'
-                                                    };
-                                                    $statusText = match ($guest['check_in_status']) {
-                                                        'Checked-In' => 'Đã check-in',
-                                                        'No-Show' => 'Vắng mặt',
-                                                        default => 'Chưa đến'
-                                                    };
-                                                    ?>
-                                                    <span class="badge <?= $statusClass ?>">
-                                                        <?= $statusText ?>
-                                                    </span>
-                                                    <?php if ($guest['check_in_time']): ?>
-                                                        <br><small class="text-muted">
-                                                            <?= date('H:i d/m', strtotime($guest['check_in_time'])) ?>
-                                                        </small>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td>
-                                                    <!-- Bước 3: HDV thực hiện check-in -->
-                                                    <?php if ($guest['check_in_status'] != 'Checked-In'): ?>
-                                                        <form method="POST" action="?act=checkin-khach" style="display:inline;">
-                                                            <input type="hidden" name="guest_id" value="<?= $guest['guest_id'] ?>">
-                                                            <input type="hidden" name="booking_id" value="<?= $booking_id ?? '' ?>">
-                                                            <input type="hidden" name="schedule_id" value="<?= $schedule_id ?? '' ?>">
-                                                            <input type="hidden" name="check_in_status" value="Checked-In">
-                                                            <button type="submit" class="btn btn-success btn-sm"
-                                                                onclick="return confirm('Xác nhận check-in cho <?= htmlspecialchars($guest['full_name']) ?>?')">
-                                                                <i class="feather icon-check"></i> Check-in
-                                                            </button>
-                                                        </form>
-                                                    <?php endif; ?>
-
-                                                    <?php if ($guest['check_in_status'] != 'No-Show' && $guest['check_in_status'] != 'Checked-In'): ?>
-                                                        <form method="POST" action="?act=checkin-khach" style="display:inline;">
-                                                            <input type="hidden" name="guest_id" value="<?= $guest['guest_id'] ?>">
-                                                            <input type="hidden" name="booking_id" value="<?= $booking_id ?? '' ?>">
-                                                            <input type="hidden" name="schedule_id" value="<?= $schedule_id ?? '' ?>">
-                                                            <input type="hidden" name="check_in_status" value="No-Show">
-                                                            <button type="submit" class="btn btn-danger btn-sm"
-                                                                onclick="return confirm('Đánh dấu vắng mặt cho <?= htmlspecialchars($guest['full_name']) ?>?')">
-                                                                <i class="feather icon-x"></i> Vắng mặt
-                                                            </button>
-                                                        </form>
-                                                    <?php endif; ?>
-
-                                                    <!-- Bước 4: Phân phòng khách sạn -->
-                                                    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
-                                                        data-target="#roomModal<?= $guest['guest_id'] ?>">
-                                                        <i class="feather icon-home"></i> Phòng
-                                                    </button>
-
-                                                    <!-- Room Assignment Modal -->
-                                                    <div class="modal fade" id="roomModal<?= $guest['guest_id'] ?>"
-                                                        tabindex="-1">
-                                                        <div class="modal-dialog">
-                                                            <div class="modal-content">
-                                                                <div class="modal-header">
-                                                                    <h5 class="modal-title">Phân phòng:
-                                                                        <?= htmlspecialchars($guest['full_name']) ?></h5>
-                                                                    <button type="button" class="close" data-dismiss="modal">
-                                                                        <span>&times;</span>
-                                                                    </button>
-                                                                </div>
-                                                                <form method="POST" action="?act=phan-phong">
-                                                                    <div class="modal-body">
-                                                                        <input type="hidden" name="guest_id"
-                                                                            value="<?= $guest['guest_id'] ?>">
-                                                                        <input type="hidden" name="booking_id"
-                                                                            value="<?= $booking_id ?? '' ?>">
-                                                                        <input type="hidden" name="schedule_id"
-                                                                            value="<?= $schedule_id ?? '' ?>">
-                                                                        <div class="form-group">
-                                                                            <label>Số phòng *</label>
-                                                                            <input type="text" name="room_number"
-                                                                                class="form-control"
-                                                                                value="<?= htmlspecialchars($guest['room_number'] ?? '') ?>"
-                                                                                placeholder="VD: 101, A201, B305..." required>
-                                                                            <small class="text-muted">Nhập số phòng khách sạn</small>
-                                                                        </div>
-                                                                        <div class="form-group">
-                                                                            <label>Loại phòng</label>
-                                                                            <select name="room_type" class="form-control">
-                                                                                <option value="Standard" <?= ($guest['room_type'] ?? '') == 'Standard' ? 'selected' : '' ?>>Standard</option>
-                                                                                <option value="Deluxe" <?= ($guest['room_type'] ?? '') == 'Deluxe' ? 'selected' : '' ?>>Deluxe</option>
-                                                                                <option value="Suite" <?= ($guest['room_type'] ?? '') == 'Suite' ? 'selected' : '' ?>>Suite</option>
-                                                                                <option value="Single" <?= ($guest['room_type'] ?? '') == 'Single' ? 'selected' : '' ?>>Đơn</option>
-                                                                                <option value="Double" <?= ($guest['room_type'] ?? '') == 'Double' ? 'selected' : '' ?>>Đôi</option>
-                                                                                <option value="Twin" <?= ($guest['room_type'] ?? '') == 'Twin' ? 'selected' : '' ?>>Twin</option>
-                                                                                <option value="Family" <?= ($guest['room_type'] ?? '') == 'Family' ? 'selected' : '' ?>>Gia đình</option>
-                                                                            </select>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="modal-footer">
-                                                                        <button type="button" class="btn btn-secondary"
-                                                                            data-dismiss="modal">Hủy</button>
-                                                                        <button type="submit"
-                                                                            class="btn btn-primary">Lưu</button>
-                                                                    </div>
-                                                                </form>
-                                                            </div>
-                                                        </div>
+                                                        </button>
+                                                        <button type="button" class="btn btn-info" title="Xem ghi chú">
+                                                            <i class="feather icon-message-square"></i>
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="10" class="text-center text-muted">
-                                                <i class="feather icon-info"></i> Chưa có khách nào trong danh sách
+                                            <td colspan="10" class="text-center text-muted py-4">
+                                                <i class="feather icon-inbox"></i> Chưa có khách nào trong danh sách
                                             </td>
                                         </tr>
                                     <?php endif; ?>

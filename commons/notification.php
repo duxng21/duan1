@@ -93,20 +93,12 @@ function notifyServiceAssignment($schedule_id, $service_id)
         }
 
         // Lấy thông tin dịch vụ/đối tác
-        $sqlService = "SELECT s.*, p.contact_person, p.email as partner_email, p.phone as partner_phone
-                       FROM services s
-                       LEFT JOIN partners p ON s.partner_id = p.partner_id
-                       WHERE s.service_id = ?";
+        $sqlService = "SELECT * FROM services WHERE service_id = ?";
         $stmtService = $conn->prepare($sqlService);
         $stmtService->execute([$service_id]);
         $service = $stmtService->fetch();
 
-        if (!$service) {
-            return false;
-        }
-        
-        $contact_email = $service['partner_email'] ?? $service['contact_phone'] ?? null;
-        if (!$contact_email) {
+        if (!$service || !$service['contact_email']) {
             return false;
         }
 
@@ -117,14 +109,26 @@ function notifyServiceAssignment($schedule_id, $service_id)
                     schedule_id, title, message, status
                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        $serviceTypeVN = match ($service['service_type']) {
-            'Hotel' => 'Khách sạn',
-            'Restaurant' => 'Nhà hàng',
-            'Transport' => 'Phương tiện',
-            'Flight' => 'Vé máy bay',
-            'Insurance' => 'Bảo hiểm',
-            default => 'Dịch vụ'
-        };
+        switch ($service['service_type']) {
+            case 'Hotel':
+                $serviceTypeVN = 'Khách sạn';
+                break;
+            case 'Restaurant':
+                $serviceTypeVN = 'Nhà hàng';
+                break;
+            case 'Transport':
+                $serviceTypeVN = 'Phương tiện';
+                break;
+            case 'Flight':
+                $serviceTypeVN = 'Vé máy bay';
+                break;
+            case 'Insurance':
+                $serviceTypeVN = 'Bảo hiểm';
+                break;
+            default:
+                $serviceTypeVN = 'Dịch vụ';
+                break;
+        }
 
         $title = "Đặt {$serviceTypeVN}: {$service['service_name']}";
         $message = "Tour {$schedule['tour_code']} - {$schedule['tour_name']} đã đặt {$serviceTypeVN} của bạn\n";
@@ -135,9 +139,9 @@ function notifyServiceAssignment($schedule_id, $service_id)
         $stmtLog->execute([
             'service_assignment',
             'partner',
-            $service['partner_id'],
-            $service['provider_name'] ?? $service['service_name'],
-            $contact_email,
+            $service_id,
+            $service['provider_name'],
+            $service['contact_email'],
             $schedule_id,
             $title,
             $message,
@@ -145,7 +149,7 @@ function notifyServiceAssignment($schedule_id, $service_id)
         ]);
 
         // TODO: Tích hợp email service thực tế
-        // sendEmail($contact_email, $title, $message);
+        // sendEmail($service['contact_email'], $title, $message);
 
         return true;
     } catch (Exception $e) {
